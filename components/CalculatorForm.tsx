@@ -21,6 +21,7 @@ import {
   BitcoinPriceData,
   ValidationError 
 } from '@/lib/types';
+import { validateAmortizationInputs } from '@/lib/calculations';
 
 interface CalculatorFormProps {
   onSubmit: (inputs: CalculatorInputs) => void;
@@ -57,6 +58,7 @@ export default function CalculatorForm({
   const [newInterestRate, setNewInterestRate] = useState<string>('6.0');
   const [closingCosts, setClosingCosts] = useState<string>('2000');
   const [cashOutAmount, setCashOutAmount] = useState<string>('40000');
+  const [cashOutPercentage, setCashOutPercentage] = useState<string>('20');
   const [estimatedNewPayment, setEstimatedNewPayment] = useState<number>(0);
   const [userDesiredPayment, setUserDesiredPayment] = useState<string>('');
 
@@ -109,16 +111,24 @@ export default function CalculatorForm({
     
     setAvailableEquity(equity);
     setMaxCashOut(maxCash);
-    
-    // Default cash out to lesser of 20% of property value or all available equity
-    const defaultCashOut = Math.min(propValue * 0.2, equity);
-    const currentCashOut = parseFloat(cashOutAmount) || 0;
-    
-    // Set default if no value set yet, or update if it exceeds max
-    if (currentCashOut === 0 || currentCashOut > maxCash) {
-      setCashOutAmount(Math.min(defaultCashOut, maxCash).toString());
-    }
-  }, [propertyValue, currentBalance, cashOutAmount]);
+  }, [propertyValue, currentBalance]);
+
+  // Handlers for cash-out calculations to avoid circular dependencies
+  const handleCashOutAmountChange = (value: string) => {
+    setCashOutAmount(value);
+    const amount = parseFloat(value) || 0;
+    const propValue = parseFloat(propertyValue) || 1;
+    const percentage = ((amount / propValue) * 100).toFixed(1);
+    setCashOutPercentage(percentage);
+  };
+
+  const handleCashOutPercentageChange = (value: string) => {
+    setCashOutPercentage(value);
+    const percentage = parseFloat(value) || 0;
+    const propValue = parseFloat(propertyValue) || 0;
+    const amount = ((percentage / 100) * propValue).toFixed(0);
+    setCashOutAmount(amount);
+  };
 
   // Calculate estimated payments
   useEffect(() => {
@@ -128,17 +138,23 @@ export default function CalculatorForm({
       const terms = (parseFloat(newLoanTermYears) || 30) * 12;
       
       if (principal > 0 && rate > 0 && terms > 0) {
-        const monthlyPayment = principal * (rate * Math.pow(1 + rate, terms)) / (Math.pow(1 + rate, terms) - 1);
-        setEstimatedNewPayment(monthlyPayment);
+        const newPI = principal * (rate * Math.pow(1 + rate, terms)) / (Math.pow(1 + rate, terms) - 1);
+        
+        // Add original T&I to new P&I to get total payment
+        const originalTI = (parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0);
+        const totalNewPayment = newPI + originalTI;
+        
+        setEstimatedNewPayment(totalNewPayment);
       }
     } else {
-      // HELOC interest-only payment estimate
+      // HELOC interest-only payment estimate + keep current mortgage payment
       const helocAmount = parseFloat(cashOutAmount) || 0;
       const rate = (parseFloat(helocInterestRate) || 0) / 100 / 12;
       const interestOnly = helocAmount * rate;
-      setEstimatedNewPayment(interestOnly);
+      const currentMortgagePayment = parseFloat(monthlyPayment) || 0;
+      setEstimatedNewPayment(currentMortgagePayment + interestOnly);
     }
-  }, [loanType, currentBalance, cashOutAmount, closingCosts, newInterestRate, newLoanTermYears, helocInterestRate]);
+  }, [loanType, currentBalance, cashOutAmount, closingCosts, newInterestRate, newLoanTermYears, helocInterestRate, monthlyTaxes, monthlyInsurance, monthlyPayment]);
 
   // Calculate shortfall
   useEffect(() => {
@@ -169,6 +185,27 @@ export default function CalculatorForm({
       setMonthlyRentalIncome(monthlyPayment);
     }
   }, [monthlyPayment, monthlyRentalIncome]);
+
+  // Auto-trigger calculations when key fields change
+  useEffect(() => {
+    const hasMinimumData = propertyValue && currentBalance && monthlyPayment && 
+                          currentInterestRate && cashOutAmount && newInterestRate;
+    
+    if (hasMinimumData) {
+      const inputs = buildCalculatorInputs();
+      if (inputs) {
+        const validation = validateAmortizationInputs(inputs);
+        if (validation.isValid) {
+          // Auto-calculate without showing loading state for live updates
+          onSubmit(inputs);
+        }
+      }
+    }
+  }, [propertyValue, currentBalance, monthlyPayment, currentInterestRate, remainingYears,
+      monthlyRentalIncome, monthlyTaxes, monthlyInsurance, monthlyHOA, loanType,
+      cashOutAmount, newLoanTermYears, newInterestRate, closingCosts, helocInterestRate,
+      helocTermYears, payoffTriggerType, payoffTriggerValue, bitcoinPerformanceModel,
+      customAnnualGrowthRate, userDesiredPayment]);
 
   // Calculate net monthly cash flow
   useEffect(() => {
@@ -237,7 +274,7 @@ export default function CalculatorForm({
     if (cashOut > maxCashOut) {
       errors.push({ 
         field: 'cashOutAmount', 
-        message: `Cash-out amount cannot exceed $${maxCashOut.toLocaleString()} (20% of property value or available equity)`, 
+        message: `Cash-out amount cannot exceed $${formatDollar(maxCashOut)} (20% of property value or available equity)`, 
         code: 'INSUFFICIENT_EQUITY' 
       });
     }
@@ -345,6 +382,16 @@ export default function CalculatorForm({
     return errors.find(error => error.field === field)?.message;
   };
 
+  // Helper function to format dollar amounts (rounded to nearest dollar)
+  const formatDollar = (amount: number): string => {
+    return Math.round(amount).toLocaleString();
+  };
+
+  // Helper function to calculate original T&I amount
+  const getOriginalTI = (): number => {
+    return (parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0);
+  };
+
   const updateScenario = (index: number, field: keyof BitcoinPriceScenario, value: string | number) => {
     const newScenarios = [...targetScenarios];
     newScenarios[index] = { ...newScenarios[index], [field]: value };
@@ -403,10 +450,10 @@ export default function CalculatorForm({
               </label>
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="text-lg font-semibold text-blue-900">
-                  ${availableEquity.toLocaleString()} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
+                  ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
                 </div>
                 <div className="text-sm text-blue-700 mt-1">
-                  Max Cash-Out (80% LTV): ${maxCashOut.toLocaleString()}
+                  Max Cash-Out (80% LTV): ${formatDollar(maxCashOut)}
                 </div>
               </div>
             </div>
@@ -594,11 +641,11 @@ export default function CalculatorForm({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">P&I Amount:</span>
-                <span className="font-semibold ml-2">${((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxes) || 0) - (parseFloat(monthlyInsurance) || 0)).toLocaleString()}</span>
+                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxes) || 0) - (parseFloat(monthlyInsurance) || 0))}</span>
               </div>
               <div>
                 <span className="text-gray-600">T&I Amount:</span>
-                <span className="font-semibold ml-2">${((parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0)).toLocaleString()}</span>
+                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0))}</span>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
@@ -606,24 +653,7 @@ export default function CalculatorForm({
             </p>
           </div>
 
-          {/* Cash Flow Display */}
-          <div className={`p-4 rounded-lg border ${
-            netMonthlyCashFlow >= 0 
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Net Monthly Cash Flow:</span>
-              <span className={`font-semibold ${
-                netMonthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                ${netMonthlyCashFlow.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Rental Income - (Taxes + Insurance + HOA + Current Mortgage)
-            </p>
-          </div>
+
         </div>
 
         {/* Loan Type Toggle */}
@@ -670,7 +700,7 @@ export default function CalculatorForm({
                 <input
                   type="number"
                   value={cashOutAmount}
-                  onChange={(e) => setCashOutAmount(e.target.value)}
+                  onChange={(e) => handleCashOutAmountChange(e.target.value)}
                   className={`input-field pl-8 ${getError('cashOutAmount') ? 'border-red-500' : ''}`}
                   placeholder="40,000"
                   max={maxCashOut}
@@ -680,34 +710,88 @@ export default function CalculatorForm({
               {getError('cashOutAmount') && (
                 <p className="mt-1 text-sm text-red-600">{getError('cashOutAmount')}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Maximum: ${maxCashOut.toLocaleString()}
-              </p>
             </div>
 
-            {loanType === 'heloc' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                OR Cash-Out Percentage
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={cashOutPercentage}
+                  onChange={(e) => handleCashOutPercentageChange(e.target.value)}
+                  className="input-field pr-8"
+                  placeholder="20"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Percentage of property value
+              </p>
+            </div>
+          </div>
+
+          {/* HELOC Equity Targeting - only show for HELOC */}
+          {loanType === 'heloc' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Equity %
+                  Target Equity Amount
                 </label>
                 <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                   <input
                     type="number"
                     value={equityTargetPercent}
                     onChange={(e) => {
                       setEquityTargetPercent(e.target.value);
-                      const percent = parseFloat(e.target.value) / 100;
-                      const newAmount = Math.min(availableEquity * percent, maxCashOut);
-                      setCashOutAmount(newAmount.toString());
+                      const amount = parseFloat(e.target.value) || 0;
+                      const propValue = parseFloat(propertyValue) || 1;
+                      const percentage = ((amount / propValue) * 100).toFixed(1);
+                      setCashOutPercentage(percentage);
+                      setCashOutAmount(amount.toString());
+                    }}
+                    className="input-field pl-8"
+                    placeholder="40,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  OR Target Equity %
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={((parseFloat(equityTargetPercent) || 0) / (parseFloat(propertyValue) || 1) * 100).toFixed(1)}
+                    onChange={(e) => {
+                      const percentage = parseFloat(e.target.value) || 0;
+                      const propValue = parseFloat(propertyValue) || 0;
+                      const amount = ((percentage / 100) * propValue).toFixed(0);
+                      setEquityTargetPercent(amount);
+                      setCashOutPercentage(percentage.toString());
+                      setCashOutAmount(amount);
                     }}
                     className="input-field pr-8"
                     placeholder="20"
-                    max="20"
                   />
                   <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
                 </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Percentage of property value
+                </p>
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Maximum:</strong> ${formatDollar(maxCashOut)} (80% LTV limit)
+            </p>
           </div>
         </div>
 
@@ -776,24 +860,12 @@ export default function CalculatorForm({
           </div>
         </div>
 
-        {/* Payment Calculations */}
+        {/* Loan Analysis */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Payment Analysis</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Loan Analysis</h3>
           
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-sm text-gray-600">Current Monthly Payment:</span>
-                <div className="font-semibold">${parseFloat(monthlyPayment).toLocaleString()}</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-600">
-                  {loanType === 'refinance' ? 'Estimated New Payment:' : 'Estimated HELOC Payment:'}
-                </span>
-                <div className="font-semibold">${estimatedNewPayment.toLocaleString()}</div>
-              </div>
-            </div>
-
+          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+            {/* Desired Payment - moved to top */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {loanType === 'refinance' ? 'Desired Monthly Payment' : 'Desired HELOC Payment'}
@@ -805,7 +877,7 @@ export default function CalculatorForm({
                   value={userDesiredPayment}
                   onChange={(e) => setUserDesiredPayment(e.target.value)}
                   className="input-field pl-8"
-                  placeholder={estimatedNewPayment.toLocaleString()}
+                  placeholder={formatDollar(estimatedNewPayment)}
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
@@ -813,11 +885,50 @@ export default function CalculatorForm({
               </p>
             </div>
 
+            {/* Loan Structure Facts */}
+            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+              <div>
+                <span className="text-sm text-gray-600">Current Monthly Payment:</span>
+                <div className="font-semibold">${formatDollar(parseFloat(monthlyPayment))}</div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600">
+                  {loanType === 'refinance' ? 'Estimated New Payment:' : 'Estimated Total Payment:'}
+                </span>
+                <div className="font-semibold">${formatDollar(estimatedNewPayment)}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {loanType === 'refinance' ? 
+                    (getOriginalTI() > 0 ? 
+                      `Includes $${formatDollar(getOriginalTI())} original Tax & Ins` : 
+                      'P&I only - no Tax & Ins entered') :
+                    'Current mortgage + HELOC payment'
+                  }
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600">
+                  {loanType === 'refinance' ? 'New Loan Amount:' : 'HELOC Amount:'}
+                </span>
+                <div className="font-semibold">
+                  ${loanType === 'refinance' 
+                    ? formatDollar((parseFloat(currentBalance) || 0) + (parseFloat(cashOutAmount) || 0) + (parseFloat(closingCosts) || 0))
+                    : formatDollar(parseFloat(cashOutAmount) || 0)
+                  }
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-600">Interest Rate:</span>
+                <div className="font-semibold">
+                  {loanType === 'refinance' ? newInterestRate : helocInterestRate}%
+                </div>
+              </div>
+            </div>
+
             {monthlyShortfall > 0 && (
               <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
                 <div className="text-sm">
                   <span className="text-yellow-800 font-medium">Monthly Shortfall:</span>
-                  <span className="font-semibold ml-2">${monthlyShortfall.toLocaleString()}</span>
+                  <span className="font-semibold ml-2">${formatDollar(monthlyShortfall)}</span>
                 </div>
                 <p className="text-xs text-yellow-700 mt-1">
                   Bitcoin calculated by model to be sold each month cover this shortfall
@@ -834,7 +945,7 @@ export default function CalculatorForm({
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Current Price:</span>
               <span className={`text-sm font-semibold ${bitcoinLoading ? 'text-gray-400' : 'text-green-600'}`}>
-                {bitcoinLoading ? 'Loading...' : `$${currentBitcoinPrice.toLocaleString()}`}
+                {bitcoinLoading ? 'Loading...' : `$${formatDollar(currentBitcoinPrice)}`}
               </span>
               <button
                 type="button"
