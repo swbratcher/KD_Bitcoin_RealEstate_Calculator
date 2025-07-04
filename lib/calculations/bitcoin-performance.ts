@@ -1,12 +1,12 @@
 /**
- * Complex Bitcoin Performance Calculation Engine
+ * Smooth Bitcoin Performance Calculation Engine
  * for KD Bitcoin Real Estate Calculator
  * 
- * This module implements the sophisticated Bitcoin performance model
- * from the Google Sheet, including:
- * - 48-month market cycles (4 years)
- * - Seasonal factors (Summer/Fall/Spring phases)
- * - Complex mathematical factors for realistic market simulation
+ * This module implements a smooth, realistic Bitcoin performance model with:
+ * - 48-month halving cycles (4 years)
+ * - User-configurable drawdown percentages
+ * - Smooth transitions between bull and bear phases
+ * - Realistic stock-like price action
  */
 
 import { 
@@ -16,100 +16,92 @@ import {
 } from '@/lib/types';
 
 /**
- * Calculate Bitcoin performance rate for a specific month
- * Based on the complex Google Sheet formula:
+ * Calculate smooth Bitcoin performance for each month using a 48-month cycle
+ * Creates realistic stock-like price action with smooth trends
  * 
- * LET(offset,MOD((YEAR*12+MONTH)-(2024*12+4),48),
- *     annualFactor,(1+rate)^4,
- *     Q,annualFactor/0.3,
- *     summerFactor,Q^(0.65/18),
- *     springFactor,Q^(0.35/8),
- *     fallFactor,0.3^(1/14),
- *     rateSummer,summerFactor-1,
- *     rateFall,fallFactor-1,
- *     rateSpring,springFactor-1,
- *     IF(offset<18,rateSummer,IF(offset<32,rateFall,IF(offset<40,0,rateSpring))))
+ * Cycle phases:
+ * - Months 0-11: Accumulation phase (0.5x-1.0x base growth)
+ * - Months 12-23: Early bull phase (1.0x-2.0x base growth)
+ * - Months 24-35: Peak bull phase (2.0x-3.0x base growth)
+ * - Months 36-47: Bear phase (decline and recovery)
  */
 export function calculateBitcoinPerformanceRate(
   monthNumber: number,
   annualGrowthRate: number,
+  maxDrawdownPercent: number = 70,
   startDate: Date = new Date(2024, 3, 1) // April 2024
 ): BitcoinPerformanceData {
-  // Calculate the current date for this month
-  const currentDate = new Date(startDate);
-  currentDate.setMonth(startDate.getMonth() + monthNumber - 1);
+  // Calculate cycle position (0-47 months)
+  const cyclePosition = (monthNumber - 1) % 48;
   
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth() + 1; // 1-12
+  // Convert annual growth rate to monthly base rate
+  const baseMonthlyRate = Math.pow(1 + annualGrowthRate, 1/12) - 1;
   
-  // Calculate offset within 48-month cycle
-  // offset = MOD((YEAR*12+MONTH)-(2024*12+4), 48)
-  const referenceMonth = 2024 * 12 + 4; // April 2024
-  const currentMonth = year * 12 + month;
-  const offset = (currentMonth - referenceMonth) % 48;
-  
-  // Calculate base factors
-  // annualFactor = (1 + rate)^4 
-  const annualFactor = Math.pow(1 + annualGrowthRate, 4);
-  
-  // Q = annualFactor / 0.3
-  const Q = annualFactor / 0.3;
-  
-  // Calculate seasonal factors
-  // summerFactor = Q^(0.65/18)
-  const summerFactor = Math.pow(Q, 0.65 / 18);
-  
-  // springFactor = Q^(0.35/8)  
-  const springFactor = Math.pow(Q, 0.35 / 8);
-  
-  // fallFactor = 0.3^(1/14)
-  const fallFactor = Math.pow(0.3, 1 / 14);
-  
-  // Calculate rates (subtract 1 to get rate from factor)
-  const rateSummer = summerFactor - 1;
-  const rateFall = fallFactor - 1;
-  const rateSpring = springFactor - 1;
-  
-  // Determine which phase and rate to use
   let monthlyPerformanceRate: number;
-  let cyclePhase: 'summer' | 'fall' | 'spring' | 'steady';
+  let cyclePhase: 'accumulation' | 'early_bull' | 'peak_bull' | 'bear' | 'steady';
   let seasonalFactor: number;
   
-  if (offset < 18) {
-    // Summer phase (months 0-17 of cycle)
-    monthlyPerformanceRate = rateSummer;
-    cyclePhase = 'summer';
-    seasonalFactor = summerFactor;
-  } else if (offset < 32) {
-    // Fall phase (months 18-31 of cycle)  
-    monthlyPerformanceRate = rateFall;
-    cyclePhase = 'fall';
-    seasonalFactor = fallFactor;
-  } else if (offset < 40) {
-    // Winter/sideways phase (months 32-39 of cycle)
-    monthlyPerformanceRate = 0;
-    cyclePhase = 'steady';
-    seasonalFactor = 1;
+  if (cyclePosition < 12) {
+    // Accumulation phase - slow, steady growth with smooth progression
+    cyclePhase = 'accumulation';
+    const phaseProgress = cyclePosition / 12; // 0 to 1
+    // Smooth curve from 0.5x to 1.0x base rate
+    const multiplier = 0.5 + (0.5 * Math.pow(phaseProgress, 0.5));
+    monthlyPerformanceRate = baseMonthlyRate * multiplier;
+    seasonalFactor = multiplier;
+    
+  } else if (cyclePosition < 24) {
+    // Early bull phase - accelerating growth with smooth curve
+    cyclePhase = 'early_bull';
+    const phaseProgress = (cyclePosition - 12) / 12; // 0 to 1
+    // Smooth acceleration from 1.0x to 2.0x base rate
+    const multiplier = 1.0 + (1.0 * Math.pow(phaseProgress, 0.8));
+    monthlyPerformanceRate = baseMonthlyRate * multiplier;
+    seasonalFactor = multiplier;
+    
+  } else if (cyclePosition < 36) {
+    // Peak bull phase - peak growth with smooth plateau
+    cyclePhase = 'peak_bull';
+    const phaseProgress = (cyclePosition - 24) / 12; // 0 to 1
+    // Smooth curve that peaks at 3x then gradually reduces to 2x
+    const multiplier = 2.0 + (1.0 * Math.sin(phaseProgress * Math.PI));
+    monthlyPerformanceRate = baseMonthlyRate * multiplier;
+    seasonalFactor = multiplier;
+    
   } else {
-    // Spring phase (months 40-47 of cycle)
-    monthlyPerformanceRate = rateSpring;
-    cyclePhase = 'spring';
-    seasonalFactor = springFactor;
+    // Bear phase - smooth decline and recovery
+    cyclePhase = 'bear';
+    const phaseProgress = (cyclePosition - 36) / 12; // 0 to 1
+    
+    // Create smooth S-curve for decline and recovery
+    const drawdownDepth = maxDrawdownPercent / 100;
+    
+    if (phaseProgress < 0.6) {
+      // Decline phase - smooth curve down
+      const declineProgress = phaseProgress / 0.6; // 0 to 1
+      const multiplier = 1.0 - (drawdownDepth * Math.pow(declineProgress, 1.5));
+      monthlyPerformanceRate = baseMonthlyRate * Math.max(multiplier, 0.1);
+      seasonalFactor = Math.max(multiplier, 0.1);
+    } else {
+      // Recovery phase - smooth curve back up
+      const recoveryProgress = (phaseProgress - 0.6) / 0.4; // 0 to 1
+      const multiplier = (1.0 - drawdownDepth) + (drawdownDepth * Math.pow(recoveryProgress, 0.7));
+      monthlyPerformanceRate = baseMonthlyRate * multiplier;
+      seasonalFactor = multiplier;
+    }
   }
   
   return {
     monthlyPerformanceRate,
     seasonalFactor,
     cyclePhase,
-    cycleOffset: offset,
+    cycleOffset: cyclePosition,
     spotPrice: 0 // Will be calculated separately
   };
 }
 
 /**
- * Calculate Bitcoin spot price using SCAN-like functionality
- * Based on the Google Sheet formula:
- * SCAN(initialPrice, performanceRates, LAMBDA(prior,rate,prior*(1+rate)))
+ * Calculate Bitcoin spot price using smooth compound growth
  */
 export function calculateBitcoinSpotPrices(
   initialPrice: number,
@@ -121,16 +113,19 @@ export function calculateBitcoinSpotPrices(
   for (let i = 0; i < Math.min(performanceData.length, maxMonths - 1); i++) {
     const previousPrice = spotPrices[spotPrices.length - 1];
     const rate = performanceData[i].monthlyPerformanceRate;
+    
+    // Ensure smooth price progression with reasonable bounds
     const newPrice = previousPrice * (1 + rate);
-    spotPrices.push(newPrice);
+    const boundedPrice = Math.max(newPrice, previousPrice * 0.8); // Prevent more than 20% drop in one month
+    
+    spotPrices.push(boundedPrice);
   }
   
   return spotPrices;
 }
 
 /**
- * Generate complete Bitcoin performance timeline
- * Combines performance rates and spot prices
+ * Generate complete Bitcoin performance timeline with smooth cycles
  */
 export function generateBitcoinPerformanceTimeline(
   inputs: CalculatorInputs,
@@ -141,19 +136,19 @@ export function generateBitcoinPerformanceTimeline(
   const initialPrice = bitcoinInvestment.currentBitcoinPrice;
   
   let annualGrowthRate: number;
+  const maxDrawdownPercent = performanceSettings.maxDrawdownPercent || 70;
   
   // Determine growth rate based on performance model
   switch (performanceSettings.model) {
     case 'seasonal':
-      // Use a base rate for seasonal calculations (typically 25% annually)
-      annualGrowthRate = 0.25;
+      annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
       break;
     case 'custom':
       annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
       break;
     case 'steady':
     default:
-      annualGrowthRate = 0.25; // 25% default
+      annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
       break;
   }
   
@@ -162,8 +157,12 @@ export function generateBitcoinPerformanceTimeline(
   // Generate performance data for each month
   for (let month = 1; month <= maxMonths; month++) {
     if (performanceSettings.model === 'seasonal' && performanceSettings.useSeasonalFactors) {
-      // Use complex seasonal model
-      const data = calculateBitcoinPerformanceRate(month, annualGrowthRate);
+      // Use smooth cyclical model
+      const data = calculateBitcoinPerformanceRate(
+        month, 
+        annualGrowthRate, 
+        maxDrawdownPercent
+      );
       performanceData.push(data);
     } else {
       // Use steady growth model
@@ -215,8 +214,7 @@ export function calculateBitcoinValueAtMonth(
 }
 
 /**
- * Calculate cumulative BTC sales needed to cover shortfalls
- * This tracks how much BTC needs to be sold monthly to cover negative cash flow
+ * Calculate how much BTC needs to be sold to cover cash flow shortfall
  */
 export function calculateBTCSalesForShortfall(
   monthlyCashFlowShortfall: number,
@@ -227,7 +225,7 @@ export function calculateBTCSalesForShortfall(
   dollarAmount: number;
   remainingBTC: number;
 } {
-  if (monthlyCashFlowShortfall <= 0 || availableBTC <= 0) {
+  if (monthlyCashFlowShortfall <= 0 || spotPrice <= 0) {
     return {
       btcToSell: 0,
       dollarAmount: 0,
@@ -236,8 +234,8 @@ export function calculateBTCSalesForShortfall(
   }
   
   const btcToSell = Math.min(
-    monthlyCashFlowShortfall / spotPrice, // BTC needed to cover shortfall
-    availableBTC // Can't sell more than we have
+    monthlyCashFlowShortfall / spotPrice,
+    availableBTC
   );
   
   const dollarAmount = btcToSell * spotPrice;
@@ -258,10 +256,15 @@ export function validateBitcoinPerformanceSettings(
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
-  if (settings.model === 'custom') {
-    const customRate = settings.customAnnualGrowthRate;
-    if (!customRate || customRate < -50 || customRate > 500) {
-      errors.push('Custom annual growth rate must be between -50% and 500%');
+  if (settings.customAnnualGrowthRate !== undefined) {
+    if (settings.customAnnualGrowthRate < -50 || settings.customAnnualGrowthRate > 200) {
+      errors.push('Custom annual growth rate must be between -50% and 200%');
+    }
+  }
+  
+  if (settings.maxDrawdownPercent !== undefined) {
+    if (settings.maxDrawdownPercent < 10 || settings.maxDrawdownPercent > 90) {
+      errors.push('Maximum drawdown must be between 10% and 90%');
     }
   }
   
@@ -272,18 +275,18 @@ export function validateBitcoinPerformanceSettings(
 }
 
 /**
- * Get human-readable description of performance model
+ * Get a description of the performance model
  */
 export function getPerformanceModelDescription(
   settings: BitcoinPerformanceSettings
 ): string {
   switch (settings.model) {
     case 'seasonal':
-      return 'Seasonal market cycles with summer bull runs, fall corrections, and spring recoveries over 48-month periods';
+      return `Cyclical model with ${settings.maxDrawdownPercent || 70}% max drawdown over 48-month cycles`;
     case 'steady':
-      return 'Steady compound growth without seasonal variations';
+      return 'Steady compound growth model';
     case 'custom':
-      return `Custom growth rate of ${settings.customAnnualGrowthRate}% annually`;
+      return `Custom model with ${settings.customAnnualGrowthRate}% annual growth`;
     default:
       return 'Unknown performance model';
   }

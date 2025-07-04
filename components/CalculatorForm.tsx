@@ -22,6 +22,7 @@ import {
   ValidationError 
 } from '@/lib/types';
 import { validateAmortizationInputs } from '@/lib/calculations';
+import AmortizationChart from './AmortizationChart';
 
 interface CalculatorFormProps {
   onSubmit: (inputs: CalculatorInputs) => void;
@@ -79,8 +80,13 @@ export default function CalculatorForm({
   const [payoffTriggerValue, setPayoffTriggerValue] = useState<string>('200'); // 200% of debt or $200k retained
   
   // NEW: Bitcoin performance settings
-  const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('seasonal'); // seasonal, steady, custom
+  const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
+  const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('70'); // Default 70% drawdown
+  const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('realist'); // bearish, realist, bullish, 3xmaxi, custom
   const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('25');
+  
+  // NEW: Property appreciation setting
+  const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
 
   // Calculated values
   const [availableEquity, setAvailableEquity] = useState<number>(0);
@@ -205,7 +211,7 @@ export default function CalculatorForm({
       monthlyRentalIncome, monthlyTaxes, monthlyInsurance, monthlyHOA, loanType,
       cashOutAmount, newLoanTermYears, newInterestRate, closingCosts, helocInterestRate,
       helocTermYears, payoffTriggerType, payoffTriggerValue, bitcoinPerformanceModel,
-      customAnnualGrowthRate, userDesiredPayment]);
+      bitcoinDrawdownPercent, bitcoinPerformanceSentiment, customAnnualGrowthRate, propertyAppreciationRate, userDesiredPayment]);
 
   // Calculate net monthly cash flow
   useEffect(() => {
@@ -305,6 +311,7 @@ export default function CalculatorForm({
       currentValue: parseFloat(propertyValue),
       purchasePrice: parseFloat(purchasePrice),
       purchaseYear: parseInt(purchaseYear),
+      appreciationRate: parseFloat(propertyAppreciationRate) / 100, // Convert to decimal
     };
 
     const currentMortgage: CurrentMortgageData = {
@@ -348,9 +355,10 @@ export default function CalculatorForm({
       currentBitcoinPrice,
       targetScenarios,
       performanceSettings: {
-        model: bitcoinPerformanceModel as 'seasonal' | 'steady' | 'custom',
-        customAnnualGrowthRate: bitcoinPerformanceModel === 'custom' ? parseFloat(customAnnualGrowthRate) : undefined,
-        useSeasonalFactors: bitcoinPerformanceModel === 'seasonal',
+        model: (bitcoinPerformanceModel === 'cycles' ? 'seasonal' : 'steady') as 'seasonal' | 'steady' | 'custom',
+        customAnnualGrowthRate: getSentimentPercentage(),
+        useSeasonalFactors: bitcoinPerformanceModel === 'cycles',
+        maxDrawdownPercent: parseFloat(bitcoinDrawdownPercent) || 70,
       },
     };
 
@@ -390,6 +398,115 @@ export default function CalculatorForm({
   // Helper function to calculate original T&I amount
   const getOriginalTI = (): number => {
     return (parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0);
+  };
+
+  // Helper function to get sentiment percentage
+  const getSentimentPercentage = (): number => {
+    switch (bitcoinPerformanceSentiment) {
+      case 'bearish': return -20;
+      case 'realist': return 20;
+      case 'bullish': return 40;
+      case '3xmaxi': return 60;
+      case 'custom': return parseFloat(customAnnualGrowthRate) || 25;
+      default: return 20;
+    }
+  };
+
+  // Generate monthly chart data with realistic amortization
+  const generateSampleChartData = () => {
+    const data = [];
+    const startDate = new Date();
+    const propertyVal = parseFloat(propertyValue) || 200000;
+    const cashOut = parseFloat(cashOutAmount) || 40000;
+    const currentBal = parseFloat(currentBalance) || 50000;
+    const newLoanAmount = currentBal + cashOut + (parseFloat(closingCosts) || 2000);
+    const btcGrowthRate = getSentimentPercentage() / 100;
+    const propGrowthRate = (parseFloat(propertyAppreciationRate) || 3) / 100;
+    const loanTermMonths = (parseFloat(newLoanTermYears) || 30) * 12;
+    const monthlyRate = (parseFloat(newInterestRate) || 6) / 100 / 12;
+    
+    // Calculate monthly payment for proper amortization
+    const monthlyPayment = monthlyRate > 0 
+      ? newLoanAmount * (monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) / (Math.pow(1 + monthlyRate, loanTermMonths) - 1)
+      : newLoanAmount / loanTermMonths;
+    
+    let remainingBalance = newLoanAmount;
+    
+    for (let month = 0; month <= Math.min(240, loanTermMonths); month++) { // 20 years or loan term
+      const yearsElapsed = month / 12;
+      const date = new Date(startDate);
+      date.setMonth(date.getMonth() + month);
+      
+      // Realistic debt amortization
+      if (month > 0 && remainingBalance > 0) {
+        const interestPayment = remainingBalance * monthlyRate;
+        const principalPayment = Math.min(monthlyPayment - interestPayment, remainingBalance);
+        remainingBalance = Math.max(0, remainingBalance - principalPayment);
+      }
+      
+      // Property appreciation (compound monthly)
+      const currentPropertyValue = propertyVal * Math.pow(1 + propGrowthRate / 12, month);
+      const baseEquity = Math.max(0, propertyVal - newLoanAmount);
+      const appreciation = currentPropertyValue - propertyVal;
+      
+      // Bitcoin value using smooth, realistic cyclical model
+      let btcValue;
+      if (bitcoinPerformanceModel === 'cycles') {
+        // Use smooth cyclical model that creates realistic price action
+        const cyclePosition = (month - 1) % 48;
+        const baseMonthlyRate = Math.pow(1 + btcGrowthRate, 1/12) - 1;
+        const drawdownPercent = parseFloat(bitcoinDrawdownPercent) || 70;
+        
+        let multiplier = 1;
+        if (cyclePosition < 12) {
+          // Accumulation phase - smooth progression
+          const phaseProgress = cyclePosition / 12;
+          multiplier = 0.5 + (0.5 * Math.pow(phaseProgress, 0.5));
+        } else if (cyclePosition < 24) {
+          // Early bull phase - smooth acceleration
+          const phaseProgress = (cyclePosition - 12) / 12;
+          multiplier = 1.0 + (1.0 * Math.pow(phaseProgress, 0.8));
+        } else if (cyclePosition < 36) {
+          // Peak bull phase - smooth peak
+          const phaseProgress = (cyclePosition - 24) / 12;
+          multiplier = 2.0 + (1.0 * Math.sin(phaseProgress * Math.PI));
+        } else {
+          // Bear phase - smooth decline and recovery
+          const phaseProgress = (cyclePosition - 36) / 12;
+          const drawdownDepth = drawdownPercent / 100;
+          
+          if (phaseProgress < 0.6) {
+            // Decline phase
+            const declineProgress = phaseProgress / 0.6;
+            multiplier = Math.max(1.0 - (drawdownDepth * Math.pow(declineProgress, 1.5)), 0.1);
+          } else {
+            // Recovery phase
+            const recoveryProgress = (phaseProgress - 0.6) / 0.4;
+            multiplier = (1.0 - drawdownDepth) + (drawdownDepth * Math.pow(recoveryProgress, 0.7));
+          }
+        }
+        
+        const monthlyRate = baseMonthlyRate * multiplier;
+        btcValue = cashOut * Math.pow(1 + monthlyRate, month);
+      } else {
+        // Flat model - steady growth
+        btcValue = cashOut * Math.pow(1 + btcGrowthRate / 12, month);
+      }
+      
+      // Format date for display
+      const dateLabel = month % 12 === 0 ? date.getFullYear().toString() : date.toISOString().slice(0, 7);
+      
+      data.push({
+        date: dateLabel,
+        debt: remainingBalance,
+        baseEquity: baseEquity,
+        appreciation: appreciation,
+        btcValue: Math.max(0, btcValue),
+        totalValue: currentPropertyValue + Math.max(0, btcValue)
+      });
+    }
+    
+    return data;
   };
 
   const updateScenario = (index: number, field: keyof BitcoinPriceScenario, value: string | number) => {
@@ -938,10 +1055,10 @@ export default function CalculatorForm({
           </div>
         </div>
 
-        {/* Bitcoin Performance Settings */}
+        {/* Bitcoin Performance */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance Settings</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Current Price:</span>
               <span className={`text-sm font-semibold ${bitcoinLoading ? 'text-gray-400' : 'text-green-600'}`}>
@@ -958,7 +1075,7 @@ export default function CalculatorForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Performance Model
@@ -968,16 +1085,57 @@ export default function CalculatorForm({
                 onChange={(e) => setBitcoinPerformanceModel(e.target.value)}
                 className="input-field"
               >
-                <option value="seasonal">Seasonal (Summer/Fall/Spring Cycles)</option>
-                <option value="steady">Steady Growth</option>
-                <option value="custom">Custom Rate</option>
+                <option value="cycles">Cycles</option>
+                <option value="flat">Flat</option>
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                Seasonal model uses complex market cycle patterns
+                Cycles use market patterns, Flat uses steady growth
               </p>
             </div>
 
-            {bitcoinPerformanceModel === 'custom' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Max Drawdown
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="5"
+                  min="10"
+                  max="90"
+                  value={bitcoinDrawdownPercent}
+                  onChange={(e) => setBitcoinDrawdownPercent(e.target.value)}
+                  className="input-field pr-8"
+                  placeholder="70"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Maximum drawdown after bull market tops
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Performance Sentiment
+              </label>
+              <select
+                value={bitcoinPerformanceSentiment}
+                onChange={(e) => setBitcoinPerformanceSentiment(e.target.value)}
+                className="input-field"
+              >
+                <option value="bearish">Bearish (-20%)</option>
+                <option value="realist">Realist (20%)</option>
+                <option value="bullish">Bullish (40%)</option>
+                <option value="3xmaxi">3xMaxi (60%)</option>
+                <option value="custom">Custom</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Annual growth rate expectation
+              </p>
+            </div>
+
+            {bitcoinPerformanceSentiment === 'custom' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Custom Annual Growth Rate
@@ -995,74 +1153,30 @@ export default function CalculatorForm({
                 </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Bitcoin Price Scenarios (Legacy - for backward compatibility) - MOVED ABOVE PAYOFF TRIGGER */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Scenario Analysis (Optional)</h3>
-          
-          <div className="space-y-3">
-            {targetScenarios.map((scenario, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Scenario Name
-                  </label>
-                  <input
-                    type="text"
-                    value={scenario.name}
-                    onChange={(e) => updateScenario(index, 'name', e.target.value)}
-                    className="input-field text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    <span className="flex items-center">
-                      CAGR
-                      <span 
-                        className="ml-1 text-blue-500 cursor-help" 
-                        title="Compound Annual Growth Rate as the average rate of value increase across the number of years of the loan term. Averages out bull and bear market cycles."
-                      >
-                        ℹ️
-                      </span>
-                    </span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={(scenario.annualGrowthRate * 100).toFixed(1)}
-                      onChange={(e) => updateScenario(index, 'annualGrowthRate', parseFloat(e.target.value) / 100)}
-                      className="input-field text-sm pr-6"
-                    />
-                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">%</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Time Horizon (Loan Term)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={scenario.timeHorizonYears}
-                      onChange={(e) => updateScenario(index, 'timeHorizonYears', parseFloat(e.target.value))}
-                      className="input-field text-sm pr-8"
-                      readOnly
-                    />
-                    <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">years</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Auto-set to loan term</p>
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Property Appreciation
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={propertyAppreciationRate}
+                  onChange={(e) => setPropertyAppreciationRate(e.target.value)}
+                  className="input-field pr-8"
+                  placeholder="3"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
               </div>
-            ))}
+              <p className="mt-1 text-xs text-gray-500">
+                Annual property value appreciation
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Payoff Trigger Settings - MOVED BELOW SCENARIO ANALYSIS */}
+        {/* Payoff Trigger Settings - MOVED ABOVE BITCOIN PERFORMANCE REPORT */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Payoff Trigger Settings</h3>
           
@@ -1099,13 +1213,14 @@ export default function CalculatorForm({
                   </>
                 ) : (
                   <>
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">BTC</span>
                     <input
                       type="number"
+                      step="0.01"
                       value={payoffTriggerValue}
                       onChange={(e) => setPayoffTriggerValue(e.target.value)}
-                      className="input-field pl-8"
-                      placeholder="200,000"
+                      className="input-field pl-12"
+                      placeholder="1.5"
                     />
                   </>
                 )}
@@ -1117,6 +1232,131 @@ export default function CalculatorForm({
                 }
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Bitcoin Performance Report */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance Report</h3>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Target %</span>
+                <div className="text-lg font-bold text-blue-600">
+                  {payoffTriggerType === 'percentage' ? payoffTriggerValue : '200'}%
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Buy Price</span>
+                <div className="text-lg font-bold text-green-600">
+                  ${formatDollar(currentBitcoinPrice)}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Bought</span>
+                <div className="text-lg font-bold text-orange-600">
+                  {((parseFloat(cashOutAmount) || 0) / currentBitcoinPrice).toFixed(6)} BTC
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Investment</span>
+                <div className="text-lg font-bold text-purple-600">
+                  ${formatDollar(parseFloat(cashOutAmount) || 0)}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Performance</span>
+                <div className="text-lg font-bold text-indigo-600">
+                  {getSentimentPercentage() > 0 ? '+' : ''}{getSentimentPercentage()}%
+                </div>
+                <div className="text-xs text-gray-500">{bitcoinPerformanceSentiment}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Model Type</span>
+                <div className="text-lg font-bold text-teal-600">
+                  {bitcoinPerformanceModel === 'cycles' ? 'Cycles' : 'Flat'}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Property Growth</span>
+                <div className="text-lg font-bold text-emerald-600">
+                  {propertyAppreciationRate}%
+                </div>
+                <div className="text-xs text-gray-500">Annual</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Monthly Shortfall</span>
+                <div className={`text-lg font-bold ${monthlyShortfall > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  ${formatDollar(monthlyShortfall)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {monthlyShortfall > 0 ? 'BTC to sell' : 'Cash positive'}
+                </div>
+              </div>
+            </div>
+
+            {/* BTC Status Indicator */}
+            <div className="mt-4 p-3 bg-white rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">BTC Crashout Status:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
+                    ? 'bg-green-100 text-green-800' 
+                    : getSentimentPercentage() >= 0 
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
+                    ? 'You never run out of Bitcoin at this shortfall.' 
+                    : getSentimentPercentage() >= 0 
+                    ? 'CAUTION'
+                    : 'RISK'
+                  }
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Based on performance sentiment and monthly cash flow requirements
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Amortization Timeline Visualization */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Timeline Visualization</h3>
+          <div className="bg-white p-6 border border-gray-200 rounded-lg">
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                20-year projection showing debt paydown, property appreciation, and Bitcoin performance
+              </p>
+                             <div className="flex flex-wrap gap-4 text-xs">
+                 <div className="flex items-center">
+                   <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
+                   <span>Debt</span>
+                 </div>
+                 <div className="flex items-center">
+                   <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
+                   <span>Base Equity</span>
+                 </div>
+                 <div className="flex items-center">
+                   <div className="w-3 h-3 bg-green-400 rounded mr-2"></div>
+                   <span>Appreciation</span>
+                 </div>
+                 <div className="flex items-center">
+                   <div className="w-3 h-3 bg-orange-600 rounded mr-2"></div>
+                   <span>BTC Value</span>
+                 </div>
+               </div>
+            </div>
+            
+            <AmortizationChart 
+              data={generateSampleChartData()}
+              height={350}
+            />
           </div>
         </div>
 

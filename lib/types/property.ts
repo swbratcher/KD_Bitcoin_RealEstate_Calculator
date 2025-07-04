@@ -10,6 +10,8 @@ export interface PropertyData {
   purchasePrice?: number;
   /** Year the property was purchased */
   purchaseYear?: number;
+  /** Annual appreciation rate (as decimal, e.g., 0.03 for 3%) */
+  appreciationRate?: number;
   /** Property address or description */
   address?: string;
   /** Property type (single family, condo, etc.) */
@@ -104,6 +106,8 @@ export interface BitcoinPerformanceSettings {
   customAnnualGrowthRate?: number;
   /** Enable seasonal market cycle calculations */
   useSeasonalFactors: boolean;
+  /** Maximum drawdown percentage after bull market tops */
+  maxDrawdownPercent?: number;
 }
 
 // NEW: Payoff trigger settings

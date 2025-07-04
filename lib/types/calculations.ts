@@ -174,7 +174,7 @@ export interface BitcoinPerformanceData {
   /** Seasonal factor applied */
   seasonalFactor: number;
   /** Market cycle phase (summer/fall/spring) */
-  cyclePhase: 'summer' | 'fall' | 'spring' | 'steady';
+  cyclePhase: 'accumulation' | 'early_bull' | 'peak_bull' | 'bear' | 'steady';
   /** Offset within 48-month cycle */
   cycleOffset: number;
   /** Calculated spot price */

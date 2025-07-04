@@ -44,13 +44,12 @@ export default function HomePage() {
         {/* Hero Section */}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            KD Bitcoin Real Estate Calculator
+            Bitcoin Real Estate Calculator
           </h1>
           <p className="mt-4 text-lg text-gray-600">
-            Discover when Bitcoin holdings could pay off your refinanced mortgage
-          </p>
+            How it looks to hold Bitcoin alongside Real Estate.          </p>
           <div className="mt-4 text-sm text-blue-600">
-            🧪 <strong>Testing Mode:</strong> Core functionality integration test
+            🧪 <strong>Client Side Only:</strong> None of your data is seen by this site.
           </div>
         </div>
 

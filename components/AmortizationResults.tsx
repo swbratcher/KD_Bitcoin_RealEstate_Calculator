@@ -11,8 +11,7 @@
 import React, { useState } from 'react';
 import { 
   AmortizationResults as AmortizationResultsType, 
-  MonthlyAmortizationEntry,
-  StackedChartDataPoint 
+  MonthlyAmortizationEntry
 } from '@/lib/types';
 import { formatCurrency, formatPercent, formatDate } from '@/lib/calculations';
 
@@ -27,8 +26,6 @@ export default function AmortizationResults({
   loading = false, 
   error 
 }: AmortizationResultsProps) {
-  const [activeTab, setActiveTab] = useState<'table' | 'summary' | 'chart'>('table');
-  const [showAllMonths, setShowAllMonths] = useState(false);
 
   if (loading) {
     return (
@@ -67,102 +64,49 @@ export default function AmortizationResults({
     );
   }
 
-  const displayedMonths = showAllMonths ? results.monthlySchedule : results.monthlySchedule.slice(0, 60);
-
   return (
-    <div className="bg-white rounded-lg shadow-md">
-      {/* Header with tabs */}
-      <div className="border-b border-gray-200">
-        <div className="p-6 pb-0">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Amortization Results
+    <div className="space-y-6">
+      {/* Performance Summary - Above the table */}
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
+            Performance Summary
           </h2>
-          <div className="flex space-x-1">
-            <button
-              onClick={() => setActiveTab('table')}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
-                activeTab === 'table'
-                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Amortization Table
-            </button>
-            <button
-              onClick={() => setActiveTab('summary')}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
-                activeTab === 'summary'
-                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Performance Summary
-            </button>
-            <button
-              onClick={() => setActiveTab('chart')}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
-                activeTab === 'chart'
-                  ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-500'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Chart Data
-            </button>
-          </div>
+        </div>
+        <div className="p-6">
+          <PerformanceSummary results={results} />
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6">
-        {activeTab === 'table' && (
+      {/* Amortization Table */}
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">
+            Amortization Table
+          </h2>
+        </div>
+        <div className="p-6">
           <AmortizationTable 
-            schedule={displayedMonths}
-            showAllMonths={showAllMonths}
-            onToggleShowAll={() => setShowAllMonths(!showAllMonths)}
-            totalMonths={results.monthlySchedule.length}
+            schedule={results.monthlySchedule}
           />
-        )}
-
-        {activeTab === 'summary' && (
-          <PerformanceSummary 
-            results={results}
-          />
-        )}
-
-        {activeTab === 'chart' && (
-          <ChartDataView 
-            chartData={results.stackedChartData}
-          />
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
 function AmortizationTable({ 
-  schedule, 
-  showAllMonths, 
-  onToggleShowAll, 
-  totalMonths 
+  schedule
 }: {
   schedule: MonthlyAmortizationEntry[];
-  showAllMonths: boolean;
-  onToggleShowAll: () => void;
-  totalMonths: number;
 }) {
   return (
     <div className="space-y-4">
-      {/* Controls */}
+      {/* Info */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-600">
-          Showing {schedule.length} of {totalMonths} months
+          Showing all {schedule.length} months
         </p>
-        <button
-          onClick={onToggleShowAll}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          {showAllMonths ? 'Show First 5 Years' : 'Show All Months'}
-        </button>
       </div>
 
       {/* Scrollable table */}
@@ -359,74 +303,4 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
   );
 }
 
-function ChartDataView({ chartData }: { chartData: StackedChartDataPoint[] }) {
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">Stacked Chart Data (20-Year View)</h3>
-      <p className="text-sm text-gray-600">
-        This data powers the stacked area chart visualization showing debt, equity, appreciation, and BTC value over time.
-      </p>
-      
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Month
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Debt (Red)
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Base Equity (Green)
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Appreciation (Light Green)
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                BTC Value (Gold)
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Value
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {chartData.slice(0, 60).map((dataPoint, index) => (
-              <tr key={dataPoint.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {dataPoint.month}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {new Date(dataPoint.date).toLocaleDateString()}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-red-600">
-                  {formatCurrency(dataPoint.debt)}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-green-600">
-                  {formatCurrency(dataPoint.baseEquity)}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-green-400">
-                  {formatCurrency(dataPoint.appreciation)}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-yellow-600">
-                  {formatCurrency(dataPoint.btcValue)}
-                </td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                  {formatCurrency(dataPoint.totalValue)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      
-      <p className="text-sm text-gray-500">
-        Showing first 60 months of chart data. Full dataset contains {chartData.length} months.
-      </p>
-    </div>
-  );
-} 
+ 
