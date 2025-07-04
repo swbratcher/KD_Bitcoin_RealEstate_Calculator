@@ -1,0 +1,401 @@
+/**
+ * Main Calculator Functions
+ * for KD Bitcoin Real Estate Calculator
+ * 
+ * This module combines mortgage and Bitcoin calculations to determine
+ * when Bitcoin holdings could pay off the refinanced mortgage.
+ */
+
+import { 
+  CalculatorInputs, 
+  CalculationResults, 
+  ScenarioResult, 
+  PayoffTimelineEntry,
+  BitcoinPriceScenario,
+  MonthlyBreakdown
+} from '@/lib/types';
+
+import { 
+  calculateMonthlyPayment, 
+  calculateRemainingBalance,
+  calculateInterestSaved,
+  generateAmortizationSchedule,
+  calculateTotalInterest
+} from './mortgage';
+
+import { 
+  calculateBitcoinValueAtTime,
+  calculateTimeToTarget,
+  generateBitcoinTimeline,
+  calculateMultipleScenarios
+} from './bitcoin';
+
+/**
+ * Main calculation function that determines when Bitcoin could pay off mortgage
+ */
+export function calculatePayoffScenarios(inputs: CalculatorInputs): CalculationResults {
+  const { property, currentMortgage, refinanceScenario, bitcoinInvestment } = inputs;
+  
+  // Calculate baseline scenario (no Bitcoin investment)
+  const baseline = calculateBaseline(refinanceScenario, currentMortgage);
+  
+  // Calculate scenarios for each Bitcoin price target
+  const scenarios = bitcoinInvestment.targetScenarios.map(scenario => 
+    calculateScenario(inputs, scenario, baseline)
+  );
+  
+  // Calculate comparison metrics
+  const comparison = calculateComparison(scenarios);
+  
+  return {
+    scenarios,
+    baseline,
+    comparison,
+    inputs,
+    calculatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Calculate baseline scenario (no Bitcoin investment)
+ */
+function calculateBaseline(
+  refinanceScenario: any,
+  currentMortgage: any
+): {
+  totalInterestPaid: number;
+  totalMonthsToPayoff: number;
+  totalYearsToPayoff: number;
+  finalPayoffDate: string;
+} {
+  const newLoanAmount = refinanceScenario.newLoanAmount;
+  const newInterestRate = refinanceScenario.newInterestRate;
+  const newLoanTermYears = refinanceScenario.newLoanTermYears;
+  
+  const totalInterestPaid = calculateTotalInterest(
+    newLoanAmount,
+    newInterestRate,
+    newLoanTermYears
+  );
+  
+  const totalMonthsToPayoff = newLoanTermYears * 12;
+  const totalYearsToPayoff = newLoanTermYears;
+  
+  const finalPayoffDate = new Date();
+  finalPayoffDate.setMonth(finalPayoffDate.getMonth() + totalMonthsToPayoff);
+  
+  return {
+    totalInterestPaid,
+    totalMonthsToPayoff,
+    totalYearsToPayoff,
+    finalPayoffDate: finalPayoffDate.toISOString().substr(0, 10),
+  };
+}
+
+/**
+ * Calculate individual scenario results
+ */
+function calculateScenario(
+  inputs: CalculatorInputs,
+  scenario: BitcoinPriceScenario,
+  baseline: any
+): ScenarioResult {
+  const { refinanceScenario, bitcoinInvestment } = inputs;
+  
+  // Generate monthly timeline
+  const timeline = generatePayoffTimeline(
+    refinanceScenario.newLoanAmount,
+    refinanceScenario.newInterestRate,
+    refinanceScenario.newLoanTermYears,
+    bitcoinInvestment.investmentAmount,
+    bitcoinInvestment.currentBitcoinPrice,
+    scenario.annualGrowthRate,
+    baseline.totalMonthsToPayoff
+  );
+  
+  // Find when Bitcoin can pay off the mortgage
+  const payoffEntry = timeline.find(entry => entry.canPayOff);
+  const payoffMonth = payoffEntry ? payoffEntry.month : null;
+  const payoffDate = payoffEntry ? payoffEntry.date : null;
+  
+  // Calculate interest saved
+  const interestSaved = payoffEntry 
+    ? calculateInterestSaved(
+        payoffEntry.remainingBalance,
+        refinanceScenario.newInterestRate,
+        baseline.totalMonthsToPayoff - payoffEntry.month
+      )
+    : 0;
+  
+  // Final values
+  const finalEntry = timeline[timeline.length - 1];
+  const finalBitcoinValue = finalEntry.bitcoinValue;
+  const finalBitcoinPrice = finalEntry.bitcoinPrice;
+  const surplus = payoffEntry ? payoffEntry.surplus : 0;
+  
+  // Summary statistics
+  const summary = {
+    totalMonthsToPayoff: payoffMonth || baseline.totalMonthsToPayoff,
+    totalYearsToPayoff: (payoffMonth || baseline.totalMonthsToPayoff) / 12,
+    bitcoinReturnRate: calculateBitcoinReturnRate(
+      bitcoinInvestment.investmentAmount,
+      finalBitcoinValue
+    ),
+    effectiveAnnualReturn: calculateEffectiveAnnualReturn(
+      bitcoinInvestment.investmentAmount,
+      finalBitcoinValue,
+      timeline.length / 12
+    ),
+  };
+  
+  return {
+    scenarioName: scenario.name,
+    payoffMonth,
+    payoffDate,
+    interestSaved,
+    finalBitcoinValue,
+    finalBitcoinPrice,
+    surplus,
+    timeline,
+    summary,
+  };
+}
+
+/**
+ * Generate monthly payoff timeline
+ */
+function generatePayoffTimeline(
+  loanAmount: number,
+  interestRate: number,
+  loanTermYears: number,
+  bitcoinInvestment: number,
+  currentBitcoinPrice: number,
+  bitcoinGrowthRate: number,
+  maxMonths: number
+): PayoffTimelineEntry[] {
+  const timeline: PayoffTimelineEntry[] = [];
+  const monthlyPayment = calculateMonthlyPayment(loanAmount, interestRate, loanTermYears);
+  
+  for (let month = 0; month <= maxMonths; month++) {
+    // Calculate remaining mortgage balance
+    const remainingBalance = calculateRemainingBalance(
+      loanAmount,
+      interestRate,
+      loanTermYears,
+      month
+    );
+    
+    // Calculate Bitcoin value at this point
+    const bitcoinData = calculateBitcoinValueAtTime(
+      bitcoinInvestment,
+      currentBitcoinPrice,
+      bitcoinGrowthRate,
+      month
+    );
+    
+    // Determine if Bitcoin can pay off mortgage
+    const canPayOff = bitcoinData.bitcoinValue >= remainingBalance;
+    const surplus = Math.max(0, bitcoinData.bitcoinValue - remainingBalance);
+    
+    // Create date string
+    const date = new Date();
+    date.setMonth(date.getMonth() + month);
+    const dateString = date.toISOString().substr(0, 7); // YYYY-MM format
+    
+    timeline.push({
+      month,
+      date: dateString,
+      remainingBalance,
+      monthlyPayment,
+      bitcoinValue: bitcoinData.bitcoinValue,
+      bitcoinPrice: bitcoinData.bitcoinPrice,
+      canPayOff,
+      surplus,
+    });
+    
+    // Stop if mortgage is paid off
+    if (remainingBalance <= 0) break;
+  }
+  
+  return timeline;
+}
+
+/**
+ * Calculate comparison metrics across scenarios
+ */
+function calculateComparison(scenarios: ScenarioResult[]): {
+  bestScenario: string;
+  worstScenario: string;
+  averagePayoffTime: number;
+  probabilityOfSuccess: number;
+} {
+  const validScenarios = scenarios.filter(s => s.payoffMonth !== null);
+  
+  if (validScenarios.length === 0) {
+    return {
+      bestScenario: 'None',
+      worstScenario: 'None',
+      averagePayoffTime: 0,
+      probabilityOfSuccess: 0,
+    };
+  }
+  
+  // Find best scenario (earliest payoff)
+  const bestScenario = validScenarios.reduce((best, current) => 
+    (current.payoffMonth || Infinity) < (best.payoffMonth || Infinity) ? current : best
+  );
+  
+  // Find worst scenario (latest payoff)
+  const worstScenario = validScenarios.reduce((worst, current) => 
+    (current.payoffMonth || 0) > (worst.payoffMonth || 0) ? current : worst
+  );
+  
+  // Calculate average payoff time
+  const averagePayoffTime = validScenarios.reduce((sum, scenario) => 
+    sum + (scenario.payoffMonth || 0), 0
+  ) / validScenarios.length;
+  
+  // Calculate probability of success (simplified)
+  const probabilityOfSuccess = validScenarios.length / scenarios.length;
+  
+  return {
+    bestScenario: bestScenario.scenarioName,
+    worstScenario: worstScenario.scenarioName,
+    averagePayoffTime,
+    probabilityOfSuccess,
+  };
+}
+
+/**
+ * Calculate Bitcoin return rate
+ */
+function calculateBitcoinReturnRate(
+  initialInvestment: number,
+  finalValue: number
+): number {
+  if (initialInvestment <= 0) return 0;
+  return (finalValue - initialInvestment) / initialInvestment;
+}
+
+/**
+ * Calculate effective annual return
+ */
+function calculateEffectiveAnnualReturn(
+  initialInvestment: number,
+  finalValue: number,
+  timeInYears: number
+): number {
+  if (initialInvestment <= 0 || timeInYears <= 0) return 0;
+  return Math.pow(finalValue / initialInvestment, 1 / timeInYears) - 1;
+}
+
+/**
+ * Calculate detailed monthly breakdown for a specific scenario
+ */
+export function calculateDetailedMonthlyBreakdown(
+  inputs: CalculatorInputs,
+  scenario: BitcoinPriceScenario
+): MonthlyBreakdown[] {
+  const { refinanceScenario, bitcoinInvestment } = inputs;
+  
+  // Generate amortization schedule
+  const amortizationSchedule = generateAmortizationSchedule(
+    refinanceScenario.newLoanAmount,
+    refinanceScenario.newInterestRate,
+    refinanceScenario.newLoanTermYears
+  );
+  
+  // Add Bitcoin data to each month
+  return amortizationSchedule.map((monthlyData, index) => {
+    const bitcoinData = calculateBitcoinValueAtTime(
+      bitcoinInvestment.investmentAmount,
+      bitcoinInvestment.currentBitcoinPrice,
+      scenario.annualGrowthRate,
+      index
+    );
+    
+    return {
+      ...monthlyData,
+      bitcoinValue: bitcoinData.bitcoinValue,
+      bitcoinPrice: bitcoinData.bitcoinPrice,
+    };
+  });
+}
+
+/**
+ * Calculate break-even analysis
+ */
+export function calculateBreakEvenAnalysis(
+  inputs: CalculatorInputs
+): {
+  breakEvenBitcoinPrice: number;
+  breakEvenTimeMonths: number;
+  minimumGrowthRate: number;
+  riskAssessment: string;
+} {
+  const { refinanceScenario, bitcoinInvestment } = inputs;
+  
+  // Calculate break-even Bitcoin price (price needed to pay off mortgage immediately)
+  const bitcoinAmount = bitcoinInvestment.investmentAmount / bitcoinInvestment.currentBitcoinPrice;
+  const breakEvenBitcoinPrice = refinanceScenario.newLoanAmount / bitcoinAmount;
+  
+  // Calculate minimum growth rate needed
+  const priceMultiplier = breakEvenBitcoinPrice / bitcoinInvestment.currentBitcoinPrice;
+  const timeInYears = refinanceScenario.newLoanTermYears;
+  const minimumGrowthRate = Math.pow(priceMultiplier, 1 / timeInYears) - 1;
+  
+  // Risk assessment
+  let riskAssessment = 'Low';
+  if (minimumGrowthRate > 0.5) riskAssessment = 'Very High';
+  else if (minimumGrowthRate > 0.3) riskAssessment = 'High';
+  else if (minimumGrowthRate > 0.15) riskAssessment = 'Medium';
+  
+  return {
+    breakEvenBitcoinPrice,
+    breakEvenTimeMonths: refinanceScenario.newLoanTermYears * 12,
+    minimumGrowthRate,
+    riskAssessment,
+  };
+}
+
+/**
+ * Validate calculator inputs
+ */
+export function validateCalculatorInputs(inputs: CalculatorInputs): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // Validate property data
+  if (inputs.property.currentValue <= 0) {
+    errors.push('Property value must be greater than zero');
+  }
+  
+  // Validate mortgage data
+  if (inputs.currentMortgage.currentBalance <= 0) {
+    errors.push('Current mortgage balance must be greater than zero');
+  }
+  
+  if (inputs.currentMortgage.interestRate < 0 || inputs.currentMortgage.interestRate > 1) {
+    errors.push('Interest rate must be between 0 and 100%');
+  }
+  
+  // Validate Bitcoin investment
+  if (inputs.bitcoinInvestment.investmentAmount <= 0) {
+    errors.push('Bitcoin investment amount must be greater than zero');
+  }
+  
+  if (inputs.bitcoinInvestment.currentBitcoinPrice <= 0) {
+    errors.push('Current Bitcoin price must be greater than zero');
+  }
+  
+  if (inputs.bitcoinInvestment.targetScenarios.length === 0) {
+    errors.push('At least one Bitcoin price scenario is required');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+} 
