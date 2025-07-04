@@ -41,22 +41,22 @@ export default function CalculatorForm({
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [loanType, setLoanType] = useState<'refinance' | 'heloc'>('refinance');
 
-  // Property data - Updated defaults based on image
-  const [propertyValue, setPropertyValue] = useState<string>('750000');
-  const [purchasePrice, setPurchasePrice] = useState<string>('325000');
+  // Property data - Easy math defaults for testing
+  const [propertyValue, setPropertyValue] = useState<string>('200000');
+  const [purchasePrice, setPurchasePrice] = useState<string>('100000');
   const [purchaseYear, setPurchaseYear] = useState<string>('2019');
 
   // Current mortgage data
-  const [currentBalance, setCurrentBalance] = useState<string>('275000');
-  const [monthlyPayment, setMonthlyPayment] = useState<string>('1750');
-  const [currentInterestRate, setCurrentInterestRate] = useState<string>('6.0');
-  const [remainingYears, setRemainingYears] = useState<string>('25');
+  const [currentBalance, setCurrentBalance] = useState<string>('50000');
+  const [monthlyPayment, setMonthlyPayment] = useState<string>('600');
+  const [currentInterestRate, setCurrentInterestRate] = useState<string>('4.0');
+  const [remainingYears, setRemainingYears] = useState<string>('20');
 
   // Refinance fields
   const [newLoanTermYears, setNewLoanTermYears] = useState<string>('30');
-  const [newInterestRate, setNewInterestRate] = useState<string>('7.0');
-  const [closingCosts, setClosingCosts] = useState<string>('5000');
-  const [cashOutAmount, setCashOutAmount] = useState<string>('150000');
+  const [newInterestRate, setNewInterestRate] = useState<string>('6.0');
+  const [closingCosts, setClosingCosts] = useState<string>('2000');
+  const [cashOutAmount, setCashOutAmount] = useState<string>('40000');
   const [estimatedNewPayment, setEstimatedNewPayment] = useState<number>(0);
   const [userDesiredPayment, setUserDesiredPayment] = useState<string>('');
 
@@ -67,9 +67,9 @@ export default function CalculatorForm({
   const [equityTargetPercent, setEquityTargetPercent] = useState<string>('20');
 
   // NEW: Property income and payment breakdown
-  const [monthlyRentalIncome, setMonthlyRentalIncome] = useState<string>('3000');
-  const [monthlyTaxes, setMonthlyTaxes] = useState<string>('750');
-  const [monthlyInsurance, setMonthlyInsurance] = useState<string>('200');
+  const [monthlyRentalIncome, setMonthlyRentalIncome] = useState<string>('600');
+  const [monthlyTaxes, setMonthlyTaxes] = useState<string>('100');
+  const [monthlyInsurance, setMonthlyInsurance] = useState<string>('100');
   const [monthlyHOA, setMonthlyHOA] = useState<string>('0');
   
   // NEW: Payoff trigger settings
@@ -103,15 +103,20 @@ export default function CalculatorForm({
     const propValue = parseFloat(propertyValue) || 0;
     const currentBal = parseFloat(currentBalance) || 0;
     const equity = propValue - currentBal;
-    const maxCash = Math.min(equity, propValue * 0.2); // Max 20% of house value
+    // Max cash out is full debt up to 80% of property value
+    const maxLoanAmount = propValue * 0.8;
+    const maxCash = Math.max(0, maxLoanAmount - currentBal);
     
     setAvailableEquity(equity);
     setMaxCashOut(maxCash);
     
-    // Update cash out amount if it exceeds max
+    // Default cash out to lesser of 20% of property value or all available equity
+    const defaultCashOut = Math.min(propValue * 0.2, equity);
     const currentCashOut = parseFloat(cashOutAmount) || 0;
-    if (currentCashOut > maxCash) {
-      setCashOutAmount(maxCash.toString());
+    
+    // Set default if no value set yet, or update if it exceeds max
+    if (currentCashOut === 0 || currentCashOut > maxCash) {
+      setCashOutAmount(Math.min(defaultCashOut, maxCash).toString());
     }
   }, [propertyValue, currentBalance, cashOutAmount]);
 
@@ -157,6 +162,13 @@ export default function CalculatorForm({
       setUserDesiredPayment(monthlyPayment);
     }
   }, [monthlyPayment, userDesiredPayment]);
+
+  // Set monthly rental income to current monthly payment as default
+  useEffect(() => {
+    if (!monthlyRentalIncome && monthlyPayment) {
+      setMonthlyRentalIncome(monthlyPayment);
+    }
+  }, [monthlyPayment, monthlyRentalIncome]);
 
   // Calculate net monthly cash flow
   useEffect(() => {
@@ -360,7 +372,7 @@ export default function CalculatorForm({
                   value={propertyValue}
                   onChange={(e) => setPropertyValue(e.target.value)}
                   className={`input-field pl-8 ${getError('propertyValue') ? 'border-red-500' : ''}`}
-                  placeholder="750,000"
+                  placeholder="200,000"
                   required
                 />
               </div>
@@ -380,38 +392,27 @@ export default function CalculatorForm({
                   value={purchasePrice}
                   onChange={(e) => setPurchasePrice(e.target.value)}
                   className="input-field pl-8"
-                  placeholder="325,000"
+                  placeholder="100,000"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Purchase Year
+                Available Equity
               </label>
-              <input
-                type="number"
-                value={purchaseYear}
-                onChange={(e) => setPurchaseYear(e.target.value)}
-                className="input-field"
-                placeholder="2019"
-              />
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="text-lg font-semibold text-blue-900">
+                  ${availableEquity.toLocaleString()} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
+                </div>
+                <div className="text-sm text-blue-700 mt-1">
+                  Max Cash-Out (80% LTV): ${maxCashOut.toLocaleString()}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Equity Display */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Available Equity:</span>
-                <span className="font-semibold ml-2">${availableEquity.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Max Cash-Out (20%):</span>
-                <span className="font-semibold ml-2">${maxCashOut.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Current Mortgage */}
@@ -430,7 +431,7 @@ export default function CalculatorForm({
                   value={currentBalance}
                   onChange={(e) => setCurrentBalance(e.target.value)}
                   className={`input-field pl-8 ${getError('currentBalance') ? 'border-red-500' : ''}`}
-                  placeholder="275,000"
+                  placeholder="50,000"
                   required
                 />
               </div>
@@ -441,7 +442,15 @@ export default function CalculatorForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Payment (P&I Only) *
+                <span className="flex items-center">
+                  Monthly Payment (PITI) *
+                  <span 
+                    className="ml-1 text-blue-500 cursor-help" 
+                    title="Total monthly payment including Principal, Interest, Taxes & Insurance"
+                  >
+                    ℹ️
+                  </span>
+                </span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -450,16 +459,13 @@ export default function CalculatorForm({
                   value={monthlyPayment}
                   onChange={(e) => setMonthlyPayment(e.target.value)}
                   className={`input-field pl-8 ${getError('monthlyPayment') ? 'border-red-500' : ''}`}
-                  placeholder="1,750"
+                  placeholder="600"
                   required
                 />
               </div>
               {getError('monthlyPayment') && (
                 <p className="mt-1 text-sm text-red-600">{getError('monthlyPayment')}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Principal & Interest only - exclude taxes/insurance
-              </p>
             </div>
 
             <div>
@@ -473,7 +479,7 @@ export default function CalculatorForm({
                   value={currentInterestRate}
                   onChange={(e) => setCurrentInterestRate(e.target.value)}
                   className={`input-field pr-8 ${getError('currentInterestRate') ? 'border-red-500' : ''}`}
-                  placeholder="6.0"
+                  placeholder="4.0"
                   required
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
@@ -492,7 +498,7 @@ export default function CalculatorForm({
                 value={remainingYears}
                 onChange={(e) => setRemainingYears(e.target.value)}
                 className="input-field"
-                placeholder="25"
+                placeholder="20"
               />
             </div>
           </div>
@@ -505,7 +511,15 @@ export default function CalculatorForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Rental Income / Desired Payment
+                <span className="flex items-center">
+                  Monthly Rental Income / Desired Payment
+                  <span 
+                    className="ml-1 text-blue-500 cursor-help" 
+                    title="Rental income or amount you want to pay monthly"
+                  >
+                    ℹ️
+                  </span>
+                </span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -514,17 +528,14 @@ export default function CalculatorForm({
                   value={monthlyRentalIncome}
                   onChange={(e) => setMonthlyRentalIncome(e.target.value)}
                   className="input-field pl-8"
-                  placeholder="3,000"
+                  placeholder="600"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Rental income or amount you want to pay monthly
-              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Property Taxes
+                Monthly Property Taxes (Optional)
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -533,14 +544,17 @@ export default function CalculatorForm({
                   value={monthlyTaxes}
                   onChange={(e) => setMonthlyTaxes(e.target.value)}
                   className="input-field pl-8"
-                  placeholder="750"
+                  placeholder="100"
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Only enter if known separately from total payment
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Insurance
+                Monthly Insurance (Optional)
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -549,9 +563,12 @@ export default function CalculatorForm({
                   value={monthlyInsurance}
                   onChange={(e) => setMonthlyInsurance(e.target.value)}
                   className="input-field pl-8"
-                  placeholder="200"
+                  placeholder="100"
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Only enter if known separately from total payment
+              </p>
             </div>
 
             <div>
@@ -569,6 +586,24 @@ export default function CalculatorForm({
                 />
               </div>
             </div>
+          </div>
+
+          {/* Payment breakdown calculation */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Calculated Payment Breakdown</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">P&I Amount:</span>
+                <span className="font-semibold ml-2">${((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxes) || 0) - (parseFloat(monthlyInsurance) || 0)).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">T&I Amount:</span>
+                <span className="font-semibold ml-2">${((parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0)).toLocaleString()}</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              These values will be used for mortgage calculations
+            </p>
           </div>
 
           {/* Cash Flow Display */}
@@ -637,7 +672,7 @@ export default function CalculatorForm({
                   value={cashOutAmount}
                   onChange={(e) => setCashOutAmount(e.target.value)}
                   className={`input-field pl-8 ${getError('cashOutAmount') ? 'border-red-500' : ''}`}
-                  placeholder="400,000"
+                  placeholder="40,000"
                   max={maxCashOut}
                   required
                 />
@@ -711,7 +746,7 @@ export default function CalculatorForm({
                   value={loanType === 'refinance' ? newInterestRate : helocInterestRate}
                   onChange={(e) => loanType === 'refinance' ? setNewInterestRate(e.target.value) : setHelocInterestRate(e.target.value)}
                   className={`input-field pr-8 ${getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') ? 'border-red-500' : ''}`}
-                  placeholder={loanType === 'refinance' ? '7.0' : '8.5'}
+                  placeholder={loanType === 'refinance' ? '6.0' : '8.5'}
                   required
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
@@ -733,7 +768,7 @@ export default function CalculatorForm({
                     value={closingCosts}
                     onChange={(e) => setClosingCosts(e.target.value)}
                     className="input-field pl-8"
-                    placeholder="5,000"
+                    placeholder="2,000"
                   />
                 </div>
               </div>
@@ -785,7 +820,7 @@ export default function CalculatorForm({
                   <span className="font-semibold ml-2">${monthlyShortfall.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-yellow-700 mt-1">
-                  Bitcoin appreciation must cover this shortfall each month
+                  Bitcoin calculated by model to be sold each month cover this shortfall
                 </p>
               </div>
             )}
