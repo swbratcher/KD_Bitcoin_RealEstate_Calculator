@@ -135,7 +135,7 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
             tick={{ fontSize: 12 }}
             tickLine={{ stroke: '#ccc' }}
             tickFormatter={formatCurrency}
-            domain={[0, yAxisMax]}
+            domain={[0, yAxisMax || 1000000]}
             allowDataOverflow={true}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -146,15 +146,8 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
             <ReferenceLine 
               key={halving.year}
               x={halving.year} 
-              stroke="#f7931a" 
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              label={{ 
-                value: `₿ Halving ${halving.date}`, 
-                position: 'topRight', 
-                fontSize: 10,
-                fill: '#f7931a'
-              }}
+              stroke="#3b82f6" 
+              strokeWidth={1}
             />
           ))}
           
@@ -173,7 +166,7 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
           <Area
             type="monotone"
             dataKey="baseEquity"
-            stackId="2"
+            stackId="1"
             stroke="#16a34a"
             fill="#16a34a"
             fillOpacity={0.8}
@@ -184,7 +177,7 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
           <Area
             type="monotone"
             dataKey="appreciation"
-            stackId="2"
+            stackId="1"
             stroke="#4ade80"
             fill="#4ade80"
             fillOpacity={0.7}
@@ -195,7 +188,7 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
           <Area
             type="monotone"
             dataKey="btcValue"
-            stackId="2"
+            stackId="1"
             stroke="#ea580c"
             fill="#ea580c"
             fillOpacity={0.8}
@@ -204,14 +197,7 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
         </AreaChart>
       </ResponsiveContainer>
       
-      {/* Chart capping notice */}
-      {hasValuesCapped && (
-        <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
-          <span className="font-medium">📊 Chart Y-axis capped for visibility:</span> 
-          {' '}Values above {formatCurrency(yAxisMax || 0)} go off-chart but show actual amounts on hover. 
-          Orange dashed lines indicate Bitcoin halving events.
-        </div>
-      )}
+
     </div>
   );
 };
