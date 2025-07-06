@@ -793,7 +793,7 @@ export default function CalculatorForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                OR Cash-Out Percentage
+                OR Equity Percentage
               </label>
               <div className="relative">
                 <input
@@ -812,60 +812,6 @@ export default function CalculatorForm({
             </div>
           </div>
 
-          {/* HELOC Equity Targeting - only show for HELOC */}
-          {loanType === 'heloc' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Equity Amount
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    type="number"
-                    value={equityTargetPercent}
-                    onChange={(e) => {
-                      setEquityTargetPercent(e.target.value);
-                      const amount = parseFloat(e.target.value) || 0;
-                      const propValue = parseFloat(propertyValue) || 1;
-                      const percentage = ((amount / propValue) * 100).toFixed(1);
-                      setCashOutPercentage(percentage);
-                      setCashOutAmount(amount.toString());
-                    }}
-                    className="input-field pl-8"
-                    placeholder="40,000"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  OR Target Equity %
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={((parseFloat(equityTargetPercent) || 0) / (parseFloat(propertyValue) || 1) * 100).toFixed(1)}
-                    onChange={(e) => {
-                      const percentage = parseFloat(e.target.value) || 0;
-                      const propValue = parseFloat(propertyValue) || 0;
-                      const amount = ((percentage / 100) * propValue).toFixed(0);
-                      setEquityTargetPercent(amount);
-                      setCashOutPercentage(percentage.toString());
-                      setCashOutAmount(amount);
-                    }}
-                    className="input-field pr-8"
-                    placeholder="20"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Percentage of property value
-                </p>
-              </div>
-            </div>
-          )}
 
         </div>
 
