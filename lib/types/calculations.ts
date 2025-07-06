@@ -165,6 +165,10 @@ export interface MonthlyAmortizationEntry {
   payoffAmount: number;
   /** Surplus after payoff (if applicable) */
   surplus: number;
+  /** BTC value at trigger point (before payoff execution) */
+  btcValueAtTrigger?: number;
+  /** Debt balance at trigger point (before payoff execution) */
+  debtBalanceAtTrigger?: number;
 }
 
 // NEW: Bitcoin performance calculation data

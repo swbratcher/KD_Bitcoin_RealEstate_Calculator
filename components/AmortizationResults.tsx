@@ -268,7 +268,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary At Payoff</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Total Asset at Payoff</h4>
+            <h4 className="text-sm font-medium text-gray-600">Assets Value</h4>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(performanceSummary.finalTotalAsset)}
             </p>
@@ -286,13 +286,13 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Total ROI</h4>
+            <h4 className="text-sm font-medium text-gray-600">ROI at Payoff</h4>
             <p className="text-2xl font-bold text-purple-600">
               {formatPercent(performanceSummary.totalROI)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Annualized Return</h4>
+            <h4 className="text-sm font-medium text-gray-600">Annual Return On Loan</h4>
             <p className="text-2xl font-bold text-indigo-600">
               {formatPercent(performanceSummary.annualizedReturn)}
             </p>

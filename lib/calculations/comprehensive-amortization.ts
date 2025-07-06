@@ -135,6 +135,10 @@ export function generateComprehensiveAmortizationTable(
     const propertyValue = property.currentValue + propertyAppreciation;
     const totalAsset = propertyValue + btcValue;
     
+    // Store pre-payoff values for accurate trigger reporting
+    const btcValueAtTrigger = btcValue;
+    const debtBalanceAtTrigger = debtBalance;
+    
     // Calculate payoff trigger analysis (only relevant during loan period)
     const payoffTriggerMet = isLoanActive ? checkPayoffTrigger(btcValue, debtBalance, payoffTrigger) : false;
     const canPayOff = isLoanActive ? btcValue >= debtBalance : true;
@@ -179,7 +183,10 @@ export function generateComprehensiveAmortizationTable(
       payoffTriggerMet,
       canPayOff,
       payoffAmount,
-      surplus
+      surplus,
+      // Store pre-payoff values if trigger fired
+      btcValueAtTrigger: payoffTriggerMet ? btcValueAtTrigger : undefined,
+      debtBalanceAtTrigger: payoffTriggerMet ? debtBalanceAtTrigger : undefined
     };
     
     comprehensiveSchedule.push(entry);
@@ -292,8 +299,9 @@ export function analyzePayoffTrigger(
     if (entry.payoffTriggerMet && entry.canPayOff) {
       triggerMonth = entry.month;
       triggerDate = entry.date;
-      btcValueAtTrigger = entry.btcValue;
-      debtAtTrigger = entry.debtBalance;
+      // Use pre-payoff values if available, otherwise fall back to entry values
+      btcValueAtTrigger = entry.btcValueAtTrigger || entry.btcValue;
+      debtAtTrigger = entry.debtBalanceAtTrigger || entry.debtBalance;
       finalBTCRetained = entry.btcHeld; // Remaining BTC amount, not dollar value
       
       // Calculate interest saved (simplified - would need more complex calculation)
@@ -330,42 +338,33 @@ export function calculatePerformanceSummary(
   const initialInvestment = inputs.bitcoinInvestment.investmentAmount;
   const initialPropertyValue = inputs.property.currentValue;
   
-  // Find the appropriate stopping point for performance summary
-  let targetEntry = amortizationSchedule[amortizationSchedule.length - 1]; // Default fallback
+  // Use payoff analysis to get the correct data - it's already working properly
+  const payoffAnalysis = analyzePayoffTrigger(amortizationSchedule);
   
-  // Priority 1: Look for payoff trigger being met AND able to pay off
-  for (const entry of amortizationSchedule) {
-    if (entry.payoffTriggerMet && entry.canPayOff) {
-      targetEntry = entry;
-      break;
-    }
-  }
+  let targetEntry: MonthlyAmortizationEntry;
+  let finalBTCValue: number;
   
-  // Priority 2: If no trigger met, find when loan naturally ends (debt = 0)
-  if (!targetEntry.payoffTriggerMet || !targetEntry.canPayOff) {
-    for (const entry of amortizationSchedule) {
-      if (entry.debtBalance === 0) {
-        targetEntry = entry;
-        break;
-      }
-    }
-  }
-  
-  // Priority 3: If loan still has debt, use original loan term end (avoid 20-year projections)
-  if (targetEntry.debtBalance > 0) {
-    // Calculate original loan term length
-    const originalLoanTermMonths = inputs.refinanceScenario.type === 'cash-out-refinance' 
-      ? inputs.refinanceScenario.newLoanTermYears * 12 
-      : 30 * 12; // Default HELOC term
+  if (payoffAnalysis.triggerMonth) {
+    // Payoff occurred - use the data from payoff analysis
+    targetEntry = amortizationSchedule[payoffAnalysis.triggerMonth - 1];
     
-    // Use the entry at original loan term end, or last entry if shorter
-    const termEndIndex = Math.min(originalLoanTermMonths - 1, amortizationSchedule.length - 1);
-    targetEntry = amortizationSchedule[termEndIndex];
+    // Calculate the BTC value as: remaining BTC * spot price at payoff month
+    // This avoids any issues with continued BTC growth after payoff
+    finalBTCValue = payoffAnalysis.finalBTCRetained * targetEntry.btcSpotPrice;
+  } else {
+    // No payoff - find appropriate end point
+    targetEntry = amortizationSchedule.find(entry => entry.debtBalance === 0) || 
+                 amortizationSchedule[Math.min(inputs.refinanceScenario.newLoanTermYears * 12 - 1, amortizationSchedule.length - 1)] ||
+                 amortizationSchedule[amortizationSchedule.length - 1];
+    
+    finalBTCValue = targetEntry.btcValue;
   }
   
-  const finalTotalAsset = targetEntry.totalAsset;
+  // Calculate property value at the target month
   const finalPropertyValue = initialPropertyValue + targetEntry.propertyAppreciation;
-  const finalBTCValue = targetEntry.btcValue;
+  
+  // Total asset should be property + BTC at payoff point
+  const finalTotalAsset = finalPropertyValue + finalBTCValue;
   
   const totalReturn = finalTotalAsset - (initialPropertyValue + initialInvestment);
   const totalROI = totalReturn / (initialPropertyValue + initialInvestment);
