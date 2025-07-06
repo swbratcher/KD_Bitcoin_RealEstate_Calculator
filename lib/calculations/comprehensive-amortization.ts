@@ -23,8 +23,11 @@ import {
 } from './amortization';
 
 import {
-  generateBitcoinPerformanceTimeline,
-  calculateBitcoinValueAtMonth,
+  generateEnhancedBitcoinPerformanceTimeline,
+  calculateEnhancedBitcoinValueAtMonth
+} from './enhanced-bitcoin-performance';
+
+import {
   calculateBTCSalesForShortfall
 } from './bitcoin-performance';
 
@@ -34,20 +37,34 @@ import {
  */
 export function generateComprehensiveAmortizationTable(
   inputs: CalculatorInputs,
-  maxMonths: number = 360
+  maxMonths?: number
 ): MonthlyAmortizationEntry[] {
   const { property, refinanceScenario, bitcoinInvestment, propertyIncome, payoffTrigger } = inputs;
   
-  // Get base amortization schedule (debt paydown only)
-  const baseSchedule = createBaseAmortizationSchedule(inputs, maxMonths);
+  // Calculate exact loan term length (no more hardcoded 360 months)
+  const loanTermMonths = maxMonths || (
+    refinanceScenario.type === 'cash-out-refinance' ? 
+      refinanceScenario.newLoanTermYears * 12 :
+      30 * 12 // Default to 30 years for HELOC
+  );
   
-  // Get Bitcoin performance timeline
-  const bitcoinPerformance = generateBitcoinPerformanceTimeline(inputs, maxMonths);
+  // Get loan start date from performance settings or default to current month
+  const loanStartDate = inputs.bitcoinInvestment.performanceSettings.loanStartDate || (() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  })();
+
+  // Get base amortization schedule (debt paydown only)
+  const baseSchedule = createBaseAmortizationSchedule(inputs, loanTermMonths, loanStartDate);
+  
+  // Get enhanced Bitcoin performance timeline with real halving alignment
+  const bitcoinPerformance = generateEnhancedBitcoinPerformanceTimeline(inputs, loanTermMonths);
   
   // Initialize Bitcoin tracking variables
   const initialBTCInvestment = bitcoinInvestment.investmentAmount;
   const initialBTCPrice = bitcoinInvestment.currentBitcoinPrice;
   const initialBTCHeld = initialBTCInvestment / initialBTCPrice;
+  
   
   let cumulativeBTCSold = 0;
   let remainingBTC = initialBTCHeld;
@@ -58,9 +75,19 @@ export function generateComprehensiveAmortizationTable(
     const baseEntry = baseSchedule[i];
     const btcPerformance = bitcoinPerformance[i];
     
-    // Calculate Bitcoin data for this month
-    const btcSpotPrice = btcPerformance.spotPrice;
+    // Calculate Bitcoin data for this month using enhanced algorithm
+    const btcValueData = calculateEnhancedBitcoinValueAtMonth(
+      i, // month number
+      initialBTCInvestment,
+      initialBTCPrice,
+      bitcoinPerformance
+    );
+    
+    const btcSpotPrice = btcValueData.currentSpotPrice;
     const btcValue = remainingBTC * btcSpotPrice;
+    
+    // Update the performance entry with calculated spot price
+    bitcoinPerformance[i].spotPrice = btcSpotPrice;
     
     // Calculate cash flow shortfall
     const totalMonthlyExpenses = baseEntry.monthlyPayment + 

@@ -60,6 +60,7 @@ export default function HomePage() {
             <CalculatorForm 
               onSubmit={handleCalculation}
               loading={calculating}
+              realChartData={amortizationResults?.stackedChartData}
             />
           </div>
 

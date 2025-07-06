@@ -13,15 +13,31 @@ Based on PRD: `prd-real-property-calculator-revised.md`
 **Phase 1 (MVP)**: Answer "When could Bitcoin pay off my refinanced loan?" - 2-3 weeks
 **Phase 2 (Enhancement)**: Professional refinance analysis tool with advanced features - 2-3 weeks
 
-## Relevant Files (MVP Focus)
+## Architecture Documentation (REQUIRED READING)
+
+**⚠️ IMPORTANT**: Before working on any tasks, AI models must read the architecture documentation to prevent data flow issues and understand the current system state.
+
+### Technical Reference Documents
+- **[Architecture Overview](./architecture-overview.md)** - Complete system understanding (READ FIRST)
+- **[Function Reference](./function-reference.md)** - All calculation functions and APIs
+- **[Data Flow Map](./data-flow-map.md)** - Complete data pipeline tracing
+
+### Current Implementation Status
+The application has evolved significantly beyond the original MVP scope. Current architecture includes:
+- Enhanced Bitcoin seasonal performance algorithm (replaces simple scenarios)
+- Comprehensive amortization engine (beyond basic calculations)
+- Real-time Bitcoin price integration via CoinGecko API
+- Advanced visualization with Recharts stacked area charts
+
+## Relevant Files (Current Implementation)
 
 ### Core Application
 - `next.config.js` - Next.js static export configuration
-- `package.json` - Essential dependencies (Next.js, TypeScript, Tailwind)
+- `package.json` - Essential dependencies (Next.js, TypeScript, Tailwind, Recharts)
 - `tsconfig.json` - TypeScript configuration
 - `tailwind.config.js` - KrigerDanes branding colors
-- `pages/index.tsx` - Main refinance calculator page
-- `pages/_app.tsx` - Global layout with branding
+- `app/page.tsx` - Main calculator page (App Router)
+- `app/layout.tsx` - Global layout with branding
 
 ### Phase 1 Components  
 - `components/RefinanceInput.tsx` - Essential refinance inputs (4 fields)
@@ -69,7 +85,7 @@ Based on PRD: `prd-real-property-calculator-revised.md`
 - [X] 2.7 Create halving date utilities for real-world cycle alignment
 - [X] 2.8 Implement enhanced Bitcoin algorithm with season-based cycles
 - [X] 2.9 Add diminishing returns support with dual CAGR inputs
-- [ ] 2.10 Integrate enhanced algorithm with existing comprehensive amortization
+- [X] 2.10 Integrate enhanced algorithm with existing comprehensive amortization
 - [ ] 2.11 Update UI controls for new Bitcoin performance settings
 
 ### 3.0 User Interface (MVP - Refinance Focus)

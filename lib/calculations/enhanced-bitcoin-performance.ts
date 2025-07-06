@@ -84,7 +84,7 @@ function calculateSeasonalFactors(cycleCAGR: number): {
 }
 
 /**
- * Get monthly performance factor based on cycle position and season
+ * Get monthly performance factor with smooth transitions between seasons
  */
 function getMonthlyPerformanceFactor(
   cyclePosition: number,
@@ -92,19 +92,28 @@ function getMonthlyPerformanceFactor(
 ): number {
   const { summer, fall, winter, spring } = SEASON_CONFIG;
   
+  // Calculate annual growth factor (smooth baseline)
+  const annualGrowthFactor = Math.pow(seasonalFactors.summerFactorPerMonth, 12);
+  const baseMonthlyFactor = Math.pow(annualGrowthFactor, 1/12);
+  
+  // Add gentle seasonal variation (±10% max) instead of harsh transitions
+  let seasonalMultiplier = 1.0;
+  
   if (cyclePosition < summer.months) {
-    // Summer (months 0-17): Bull market growth
-    return seasonalFactors.summerFactorPerMonth;
+    // Summer (months 0-17): Slightly above average
+    seasonalMultiplier = 1.05;
   } else if (cyclePosition < summer.months + fall.months) {
-    // Fall (months 18-29): Bear market decline
-    return seasonalFactors.fallFactorPerMonth;
+    // Fall (months 18-29): Slightly below average
+    seasonalMultiplier = 0.98;
   } else if (cyclePosition < summer.months + fall.months + winter.months) {
-    // Winter (months 30-35): Consolidation
-    return seasonalFactors.winterFactorPerMonth;
+    // Winter (months 30-35): Neutral
+    seasonalMultiplier = 1.0;
   } else {
-    // Spring (months 36-47): Recovery/preparation
-    return seasonalFactors.springFactorPerMonth;
+    // Spring (months 36-47): Moderate recovery
+    seasonalMultiplier = 1.02;
   }
+  
+  return baseMonthlyFactor * seasonalMultiplier;
 }
 
 /**
@@ -118,12 +127,20 @@ export function generateEnhancedBitcoinPerformanceTimeline(
   const { performanceSettings } = bitcoinInvestment;
   
   // Calculate exact loan term length
-  const loanTermMonths = maxMonths || (refinanceScenario.newLoanTermYears * 12);
+  const loanTermMonths = maxMonths || (
+    refinanceScenario.type === 'cash-out-refinance' ? 
+      refinanceScenario.newLoanTermYears * 12 :
+      30 * 12 // Default to 30 years for HELOC
+  );
   const totalCycles = Math.ceil(loanTermMonths / 48);
   
-  // Get starting cycle position based on loan start date
-  const loanStartDate = performanceSettings.loanStartDate || new Date();
+  // Use loan start date from UI settings or default to current month
+  const loanStartDate = performanceSettings.loanStartDate || (() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1); // First day of current month
+  })();
   const initialCyclePosition = getLoanStartCyclePosition(loanStartDate);
+  
   
   const performanceData: BitcoinPerformanceData[] = [];
   
@@ -136,27 +153,36 @@ export function generateEnhancedBitcoinPerformanceTimeline(
     const currentCycle = Math.floor(absoluteMonthInGlobalCycle / 48) + 1;
     const cyclePosition = absoluteMonthInGlobalCycle % 48;
     
+    
     // Get CAGR for this cycle (with diminishing returns)
+    const initialCAGR = performanceSettings.initialCAGR;
     const cycleCAGR = calculateCycleCAGR(
       currentCycle,
       totalCycles,
-      performanceSettings.initialCAGR,
+      initialCAGR,
       performanceSettings.finalCAGR
     );
     
     // Calculate seasonal factors for this cycle
     const seasonalFactors = calculateSeasonalFactors(cycleCAGR);
     
-    // Get monthly performance factor
-    const monthlyFactor = performanceSettings.useSeasonalFactors 
+    // Get monthly performance factor (default to seasonal factors if undefined)
+    const useSeasonalFactors = performanceSettings.useSeasonalFactors !== false;
+    const monthlyFactor = useSeasonalFactors 
       ? getMonthlyPerformanceFactor(cyclePosition, seasonalFactors)
       : Math.pow(1 + (cycleCAGR / 100), 1/12); // Flat growth if seasonal disabled
     
     // Calculate monthly percentage change
     const monthlyPerformanceRate = month === 0 ? 0 : (monthlyFactor - 1);
     
+    // Debug: Add safety check for NaN and log seasonal behavior
+    if (isNaN(monthlyPerformanceRate) || isNaN(monthlyFactor)) {
+      console.log(`DEBUG month ${month}: cycleCAGR=${cycleCAGR}, monthlyFactor=${monthlyFactor}, seasonalFactors=`, seasonalFactors);
+    }
+    
     // Get current season info
     const seasonInfo = getCurrentSeason(cyclePosition);
+    
     
     // Create performance data entry
     const performanceEntry: BitcoinPerformanceData = {
@@ -164,7 +190,7 @@ export function generateEnhancedBitcoinPerformanceTimeline(
       cyclePhase: seasonInfo.season,
       monthlyPerformanceRate,
       seasonalFactor: monthlyFactor,
-      spotPrice: 0, // Will be calculated in main function
+      spotPrice: 0, // Will be calculated in calculateEnhancedBitcoinValueAtMonth
       currentCycle,
       cycleCAGR,
       monthInLoanTerm: month + 1,
@@ -192,6 +218,7 @@ export function calculateEnhancedBitcoinValueAtMonth(
   currentSpotPrice: number;
 } {
   if (month === 0) {
+    // Month 0: Use live Bitcoin price
     return {
       totalValue: initialInvestment,
       bitcoinHeld: initialInvestment / initialPrice,
@@ -266,7 +293,9 @@ export function getAlgorithmInfo(inputs: CalculatorInputs) {
   const { bitcoinInvestment, refinanceScenario } = inputs;
   const { performanceSettings } = bitcoinInvestment;
   
-  const loanTermMonths = refinanceScenario.newLoanTermYears * 12;
+  const loanTermMonths = refinanceScenario.type === 'cash-out-refinance' ? 
+    refinanceScenario.newLoanTermYears * 12 :
+    30 * 12; // Default to 30 years for HELOC
   const totalCycles = Math.ceil(loanTermMonths / 48);
   const loanStartDate = performanceSettings.loanStartDate || new Date();
   const cycleInfo = getCycleInfo(loanStartDate);

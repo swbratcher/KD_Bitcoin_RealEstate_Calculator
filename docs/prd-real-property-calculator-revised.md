@@ -155,4 +155,37 @@ The Real Property Calculator is a focused single-page web application that enabl
 - Comprehensive input options
 - Detailed amortization tables
 
-This revised approach is much more manageable, focuses on delivering core value quickly, and provides a clear path for enhancement. 
+This revised approach is much more manageable, focuses on delivering core value quickly, and provides a clear path for enhancement.
+
+## Technical Architecture Reference
+
+**For AI Development Models:** This PRD provides the business requirements and scope. For technical implementation details, architecture understanding, and development protocols, refer to these comprehensive technical documents:
+
+### Core Architecture Documentation
+- **[Architecture Overview](./architecture-overview.md)** - Complete system architecture, technology stack, and component relationships
+- **[Function Reference](./function-reference.md)** - Detailed function signatures, calculation engines, and API reference  
+- **[Data Flow Map](./data-flow-map.md)** - Complete data pipeline from user input to visualization
+
+### Development Process Documentation
+- **[Task List](./tasks-prd-real-property-calculator-revised.md)** - Detailed implementation tasks with completion status
+- **MDC Workflow Files:**
+  - `create-prd.mdc` - Initial PRD generation process
+  - `generate-tasks.mdc` - Task breakdown methodology
+  - `process-task-list.mdc` - Development workflow protocols
+
+### Implementation Status
+As of July 2025, this application has evolved **beyond the original MVP scope** and now includes:
+- ✅ Enhanced Bitcoin seasonal performance algorithm with real halving alignment
+- ✅ Comprehensive amortization engine with cash flow analysis
+- ✅ Advanced visualization with stacked area charts
+- ✅ Real-time Bitcoin price integration
+- ✅ Complete TypeScript architecture with validation
+
+**Current State**: Phase 2+ features implemented, with ongoing refinements to the enhanced Bitcoin algorithm and UI integration.
+
+### Architecture Entry Point for AI Models
+**Start Here**: When working on this codebase, begin with:
+1. **[AI Quick Start Guide](./ai-quick-start.md)** - Mandatory checklist for AI models
+2. **[Architecture Overview](./architecture-overview.md)** - Complete system understanding  
+
+This prevents data flow issues and ensures changes align with the established architecture patterns. 

@@ -29,13 +29,22 @@ interface CalculatorFormProps {
   onInputChange?: (inputs: Partial<CalculatorInputs>) => void;
   loading?: boolean;
   initialValues?: Partial<CalculatorInputs>;
+  realChartData?: Array<{
+    date: string;
+    debt: number;
+    baseEquity: number;
+    appreciation: number;
+    btcValue: number;
+    totalValue: number;
+  }>;
 }
 
 export default function CalculatorForm({ 
   onSubmit, 
   onInputChange, 
   loading = false,
-  initialValues 
+  initialValues,
+  realChartData
 }: CalculatorFormProps) {
   // Form state
   const [currentBitcoinPrice, setCurrentBitcoinPrice] = useState<number>(100000);
@@ -85,6 +94,11 @@ export default function CalculatorForm({
   const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('realist'); // bearish, realist, bullish, 3xmaxi, custom
   const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('25');
   
+  // NEW: Enhanced Bitcoin algorithm settings
+  const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(false);
+  const [finalCAGR, setFinalCAGR] = useState<string>('10'); // Final CAGR for diminishing returns
+  const [loanStartDate, setLoanStartDate] = useState<string>('2025-07-01'); // Default, will be updated to current month
+  
   // NEW: Property appreciation setting
   const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
 
@@ -101,8 +115,13 @@ export default function CalculatorForm({
     { name: 'Aggressive', targetPrice: 1000000, annualGrowthRate: 0.40, timeHorizonYears: 30 },
   ]);
 
-  // Fetch current Bitcoin price on component mount
+  // Initialize loan start date and fetch Bitcoin price on component mount
   useEffect(() => {
+    // Set loan start date to first day of current month
+    const today = new Date();
+    const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    setLoanStartDate(currentMonth.toISOString().split('T')[0]);
+    
     fetchCurrentBitcoinPrice();
   }, []);
 
@@ -197,7 +216,10 @@ export default function CalculatorForm({
     const hasMinimumData = propertyValue && currentBalance && monthlyPayment && 
                           currentInterestRate && cashOutAmount && newInterestRate;
     
-    if (hasMinimumData) {
+    // Also ensure we have a valid Bitcoin price (not the default 100000)
+    const hasValidBitcoinPrice = currentBitcoinPrice !== 100000;
+    
+    if (hasMinimumData && hasValidBitcoinPrice) {
       const inputs = buildCalculatorInputs();
       if (inputs) {
         const validation = validateAmortizationInputs(inputs);
@@ -211,7 +233,8 @@ export default function CalculatorForm({
       monthlyRentalIncome, monthlyTaxes, monthlyInsurance, monthlyHOA, loanType,
       cashOutAmount, newLoanTermYears, newInterestRate, closingCosts, helocInterestRate,
       helocTermYears, payoffTriggerType, payoffTriggerValue, bitcoinPerformanceModel,
-      bitcoinDrawdownPercent, bitcoinPerformanceSentiment, customAnnualGrowthRate, propertyAppreciationRate, userDesiredPayment]);
+      bitcoinDrawdownPercent, bitcoinPerformanceSentiment, customAnnualGrowthRate, 
+      enableDiminishingReturns, finalCAGR, loanStartDate, propertyAppreciationRate, userDesiredPayment, currentBitcoinPrice]);
 
   // Calculate net monthly cash flow
   useEffect(() => {
@@ -356,9 +379,11 @@ export default function CalculatorForm({
       targetScenarios,
       performanceSettings: {
         model: (bitcoinPerformanceModel === 'cycles' ? 'seasonal' : 'steady') as 'seasonal' | 'steady' | 'custom',
-        customAnnualGrowthRate: getSentimentPercentage(),
+        initialCAGR: getSentimentPercentage(),
+        finalCAGR: enableDiminishingReturns ? parseFloat(finalCAGR) || null : null,
         useSeasonalFactors: bitcoinPerformanceModel === 'cycles',
         maxDrawdownPercent: parseFloat(bitcoinDrawdownPercent) || 70,
+        loanStartDate: new Date(loanStartDate), // Configurable loan start date
       },
     };
 
@@ -1174,6 +1199,64 @@ export default function CalculatorForm({
               </p>
             </div>
           </div>
+
+          {/* Enhanced Algorithm Settings */}
+          <div className="mt-6 space-y-4">
+            <h4 className="text-md font-semibold text-gray-800">Enhanced Algorithm Settings</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Loan Start Date
+                </label>
+                <input
+                  type="date"
+                  value={loanStartDate}
+                  onChange={(e) => setLoanStartDate(e.target.value)}
+                  className="input-field"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Affects halving cycle positioning
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <div className="flex items-center mb-3">
+                  <input
+                    type="checkbox"
+                    id="enableDiminishingReturns"
+                    checked={enableDiminishingReturns}
+                    onChange={(e) => setEnableDiminishingReturns(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="enableDiminishingReturns" className="text-sm font-medium text-gray-700">
+                    Enable Diminishing Returns
+                  </label>
+                </div>
+                {enableDiminishingReturns && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Final CAGR (Last Cycle)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={finalCAGR}
+                        onChange={(e) => setFinalCAGR(e.target.value)}
+                        className="input-field pr-8"
+                        placeholder="10"
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Bitcoin performance will decline from initial to final CAGR over loan term
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Payoff Trigger Settings - MOVED ABOVE BITCOIN PERFORMANCE REPORT */}
@@ -1240,6 +1323,22 @@ export default function CalculatorForm({
           <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance Report</h3>
           
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
+            {/* Enhanced Algorithm Status */}
+            <div className="mb-4 p-3 bg-white rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Enhanced Algorithm Status:</span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+                  ✓ ACTIVE
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+                <div>Model: <span className="font-semibold">{bitcoinPerformanceModel === 'cycles' ? 'Seasonal' : 'Steady'}</span></div>
+                <div>Diminishing Returns: <span className="font-semibold">{enableDiminishingReturns ? 'ON' : 'OFF'}</span></div>
+                <div>Loan Start: <span className="font-semibold">{loanStartDate}</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{bitcoinDrawdownPercent}%</span></div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-white p-3 rounded-lg">
                 <span className="text-xs text-gray-600 font-medium">BTC Target %</span>
@@ -1272,8 +1371,14 @@ export default function CalculatorForm({
                 <span className="text-xs text-gray-600 font-medium">Performance</span>
                 <div className="text-lg font-bold text-indigo-600">
                   {getSentimentPercentage() > 0 ? '+' : ''}{getSentimentPercentage()}%
+                  {enableDiminishingReturns && (
+                    <span className="text-sm"> → {parseFloat(finalCAGR) || 10}%</span>
+                  )}
                 </div>
-                <div className="text-xs text-gray-500">{bitcoinPerformanceSentiment}</div>
+                <div className="text-xs text-gray-500">
+                  {bitcoinPerformanceSentiment}
+                  {enableDiminishingReturns && <span> (diminishing)</span>}
+                </div>
               </div>
               <div className="bg-white p-3 rounded-lg">
                 <span className="text-xs text-gray-600 font-medium">Model Type</span>
@@ -1354,7 +1459,7 @@ export default function CalculatorForm({
             </div>
             
             <AmortizationChart 
-              data={generateSampleChartData()}
+              data={realChartData || generateSampleChartData()}
               height={350}
             />
           </div>

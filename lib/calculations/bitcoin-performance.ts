@@ -38,12 +38,12 @@ export function calculateBitcoinPerformanceRate(
   const baseMonthlyRate = Math.pow(1 + annualGrowthRate, 1/12) - 1;
   
   let monthlyPerformanceRate: number;
-  let cyclePhase: 'accumulation' | 'early_bull' | 'peak_bull' | 'bear' | 'steady';
+  let cyclePhase: 'summer' | 'fall' | 'winter' | 'spring' | 'steady';
   let seasonalFactor: number;
   
   if (cyclePosition < 12) {
     // Accumulation phase - slow, steady growth with smooth progression
-    cyclePhase = 'accumulation';
+    cyclePhase = 'winter';
     const phaseProgress = cyclePosition / 12; // 0 to 1
     // Smooth curve from 0.5x to 1.0x base rate
     const multiplier = 0.5 + (0.5 * Math.pow(phaseProgress, 0.5));
@@ -52,7 +52,7 @@ export function calculateBitcoinPerformanceRate(
     
   } else if (cyclePosition < 24) {
     // Early bull phase - accelerating growth with smooth curve
-    cyclePhase = 'early_bull';
+    cyclePhase = 'spring';
     const phaseProgress = (cyclePosition - 12) / 12; // 0 to 1
     // Smooth acceleration from 1.0x to 2.0x base rate
     const multiplier = 1.0 + (1.0 * Math.pow(phaseProgress, 0.8));
@@ -61,7 +61,7 @@ export function calculateBitcoinPerformanceRate(
     
   } else if (cyclePosition < 36) {
     // Peak bull phase - peak growth with smooth plateau
-    cyclePhase = 'peak_bull';
+    cyclePhase = 'summer';
     const phaseProgress = (cyclePosition - 24) / 12; // 0 to 1
     // Smooth curve that peaks at 3x then gradually reduces to 2x
     const multiplier = 2.0 + (1.0 * Math.sin(phaseProgress * Math.PI));
@@ -70,7 +70,7 @@ export function calculateBitcoinPerformanceRate(
     
   } else {
     // Bear phase - smooth decline and recovery
-    cyclePhase = 'bear';
+    cyclePhase = 'fall';
     const phaseProgress = (cyclePosition - 36) / 12; // 0 to 1
     
     // Create smooth S-curve for decline and recovery
@@ -141,14 +141,14 @@ export function generateBitcoinPerformanceTimeline(
   // Determine growth rate based on performance model
   switch (performanceSettings.model) {
     case 'seasonal':
-      annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
+      annualGrowthRate = (performanceSettings.initialCAGR || 25) / 100;
       break;
     case 'custom':
-      annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
+      annualGrowthRate = (performanceSettings.initialCAGR || 25) / 100;
       break;
     case 'steady':
     default:
-      annualGrowthRate = (performanceSettings.customAnnualGrowthRate || 25) / 100;
+      annualGrowthRate = (performanceSettings.initialCAGR || 25) / 100;
       break;
   }
   
@@ -256,8 +256,8 @@ export function validateBitcoinPerformanceSettings(
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
   
-  if (settings.customAnnualGrowthRate !== undefined) {
-    if (settings.customAnnualGrowthRate < -50 || settings.customAnnualGrowthRate > 200) {
+  if (settings.initialCAGR !== undefined) {
+    if (settings.initialCAGR < -50 || settings.initialCAGR > 200) {
       errors.push('Custom annual growth rate must be between -50% and 200%');
     }
   }
@@ -286,7 +286,7 @@ export function getPerformanceModelDescription(
     case 'steady':
       return 'Steady compound growth model';
     case 'custom':
-      return `Custom model with ${settings.customAnnualGrowthRate}% annual growth`;
+      return `Custom model with ${settings.initialCAGR}% annual growth`;
     default:
       return 'Unknown performance model';
   }

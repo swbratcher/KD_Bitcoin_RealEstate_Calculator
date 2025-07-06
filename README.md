@@ -1,134 +1,175 @@
-# 🚀 AI Dev Tasks for Cursor 🤖
+# Bitcoin Real Estate Calculator
 
-Welcome to **AI Dev Tasks**! This repository provides a collection of `.mdc` (Markdown Command) files designed to supercharge your feature development workflow within the [Cursor](https://cursor.sh/) editor. By leveraging these commands with Cursor's AI Agent, you can systematically approach building features, from ideation to implementation, with built-in checkpoints for verification.
+A comprehensive Bitcoin + Real Estate investment calculator with enhanced seasonal performance modeling and real-time price integration.
 
-Stop wrestling with monolithic AI requests and start guiding your AI collaborator step-by-step!
+## Quick Start
 
-## ✨ The Core Idea
+### For Developers
+```bash
+npm install
+npm run dev
+```
 
-Building complex features with AI can sometimes feel like a black box. This workflow aims to bring structure, clarity, and control to the process by:
+### For AI Development Models 🤖
 
-1. **Defining Scope:** Clearly outlining what needs to be built with a Product Requirement Document (PRD).
-2. **Detailed Planning:** Breaking down the PRD into a granular, actionable task list.
-3. **Iterative Implementation:** Guiding the AI to tackle one task at a time, allowing you to review and approve each change.
+**⚠️ MANDATORY FIRST STEP**: Read the architecture documentation to understand the complete system before making any changes.
 
-This structured approach helps ensure the AI stays on track, makes it easier to debug issues, and gives you confidence in the generated code.
+**Start Here**: [Architecture Overview](./docs/architecture-overview.md)
 
-## Workflow: From Idea to Implemented Feature 💡➡️💻
+## Documentation Hierarchy (REQUIRED READING)
 
-Here's the step-by-step process using the `.mdc` files in this repository:
+### 1. Business Requirements (PRD)
+- **[Product Requirements Document](./docs/prd-real-property-calculator-revised.md)** - Business scope and user stories
+- **[Task List](./docs/tasks-prd-real-property-calculator-revised.md)** - Implementation tasks with completion status
 
-### 1️⃣ Create a Product Requirement Document (PRD)
+### 2. Technical Architecture (ESSENTIAL)
+- **[Architecture Overview](./docs/architecture-overview.md)** - Complete system understanding (READ FIRST)
+- **[Function Reference](./docs/function-reference.md)** - All calculation functions and APIs  
+- **[Data Flow Map](./docs/data-flow-map.md)** - Complete data pipeline from input to visualization
 
-First, lay out the blueprint for your feature. A PRD clarifies what you're building, for whom, and why.
+### 3. Development Process (MDC Workflow)
+- `create-prd.mdc` - PRD generation process
+- `generate-tasks.mdc` - Task breakdown methodology  
+- `process-task-list.mdc` - Development workflow protocols
 
-You can create a lightweight PRD directly within Cursor:
+## Current Implementation Status
 
-1. Ensure you have the `create-prd.mdc` file from this repository accessible.
-2. In Cursor's Agent chat, initiate PRD creation:
+This application has evolved **beyond the original MVP scope** and includes:
 
-    ```text
-    Use @create-prd.mdc
-    Here's the feature I want to build: [Describe your feature in detail]
-    Reference these files to help you: [Optional: @file1.py @file2.ts]
-    ```
-    *(Pro Tip: For complex PRDs, using MAX mode in Cursor is highly recommended if your budget allows for more comprehensive generation.)*
+✅ **Enhanced Bitcoin Algorithm**: Seasonal performance with real halving alignment  
+✅ **Comprehensive Amortization**: Complete cash flow and payoff analysis  
+✅ **Real-time Integration**: Live Bitcoin pricing via CoinGecko API  
+✅ **Advanced Visualization**: Stacked area charts with Recharts  
+✅ **TypeScript Architecture**: Complete type safety and validation  
 
-    ![Example of initiating PRD creation](https://pbs.twimg.com/media/Go6DDlyX0AAS7JE?format=jpg&name=large)
+## Technology Stack
 
-### 2️⃣ Generate Your Task List from the PRD
+- **Framework**: Next.js 14 (App Router, Static Export)
+- **Language**: TypeScript  
+- **UI**: React 18 + Tailwind CSS
+- **Charts**: Recharts (stacked area visualization)
+- **Testing**: Jest + ts-jest
+- **Deployment**: Static export to CPanel
 
-With your PRD drafted (e.g., `MyFeature-PRD.md`), the next step is to generate a detailed, step-by-step implementation plan for your AI Developer.
+## Key Features
 
-1. Ensure you have `generate-tasks.mdc` accessible.
-2. In Cursor's Agent chat, use the PRD to create tasks:
+### Bitcoin Performance Engine
+- **Real Halving Alignment**: Based on April 20, 2024 halving
+- **Seasonal Cycles**: 18/12/6/6 month Summer/Fall/Winter/Spring patterns
+- **Diminishing Returns**: Optional CAGR progression across cycles
+- **Smooth Price Action**: Eliminates spikes through multiplicative factors
 
-    ```text
-    Now take @MyFeature-PRD.md and create tasks using @generate-tasks.mdc
-    ```
-    *(Note: Replace `@MyFeature-PRD.md` with the actual filename of the PRD you generated in step 1.)*
+### Comprehensive Analysis
+- **Complete Amortization**: Month-by-month debt + Bitcoin + cash flow
+- **Payoff Triggers**: Configurable loan payoff conditions
+- **Risk Assessment**: Multiple scenario modeling
+- **Export Ready**: Professional-grade calculations
 
-    ![Example of generating tasks from PRD](https://pbs.twimg.com/media/Go6FITbWkAA-RCT?format=jpg&name=medium)
+### User Experience
+- **Live Bitcoin Price**: Real-time CoinGecko integration
+- **Instant Calculations**: Auto-updating results on input changes
+- **Mobile Responsive**: Works on all devices
+- **Data Privacy**: Client-side only, no data transmission
 
-### 3️⃣ Examine Your Task List
+## Development Protocols for AI Models
 
-You'll now have a well-structured task list, often with tasks and sub-tasks, ready for the AI to start working on. This provides a clear roadmap for implementation.
+### PERMANENT DEVELOPER PROTOCOLS
 
-![Example of a generated task list](https://pbs.twimg.com/media/Go6GNuOWsAEcSDm?format=jpg&name=medium)
+#### When User Says "Think Hard"
+= STOP LINEAR THINKING IMMEDIATELY
+- Map ENTIRE system architecture first
+- Trace ALL data sources and flows  
+- Find competing/parallel implementations
+- Never assume - always verify programmatically
 
-### 4️⃣ Instruct the AI to Work Through Tasks (and Mark Completion)
+#### Universal Project Start (Complex Issues)
+BEFORE ANY CHANGES:
+1. Search entire codebase for all related components
+2. Read architecture documentation files
+3. Map complete data pipeline (input → processing → output)
+4. Identify all data sources and potential conflicts
+5. Document findings before coding
 
-To ensure methodical progress and allow for verification, we'll use `process-task-list.mdc`. This command instructs the AI to focus on one task at a time and wait for your go-ahead before moving to the next.
+#### Debugging Protocol
+When encountering data mismatches:
+1. Search for ALL instances: `grep -r "ComponentName\|DataType" --include="*.tsx"`
+2. Map ALL code paths that create/modify that data
+3. Verify single source of truth exists  
+4. Check for competing implementations
 
-1. Create or ensure you have the `process-task-list.mdc` file accessible.
-2. In Cursor's Agent chat, tell the AI to start with the first task (e.g., `1.1`):
+**RULE**: Complex debugging starts with architecture mapping, not code changes.
 
-    ```text
-    Please start on task 1.1 and use @process-task-list.mdc
-    ```
-    *(Important: You only need to reference `@process-task-list.mdc` for the *first* task. The instructions within it guide the AI for subsequent tasks.)*
+## Project Structure
 
-    The AI will attempt the task and then prompt you to review.
+```
+├── app/                    # Next.js App Router
+│   ├── page.tsx           # Main calculator (orchestrates data flow)
+│   ├── layout.tsx         # Global layout
+│   └── api/               # API routes (Bitcoin price)
+├── components/            # React UI Components  
+│   ├── CalculatorForm.tsx     # Input collection + chart
+│   ├── AmortizationResults.tsx # Monthly table display
+│   └── AmortizationChart.tsx   # Stacked area visualization
+├── lib/                   # Core Business Logic
+│   ├── calculations/          # Calculation engines
+│   │   ├── enhanced-bitcoin-performance.ts  # 🎯 PRIMARY: Seasonal algorithm
+│   │   ├── comprehensive-amortization.ts    # 🎯 PRIMARY: Complete engine
+│   │   ├── halving-date-utils.ts           # Real halving utilities
+│   │   └── ...
+│   ├── types/                # TypeScript definitions
+│   ├── utils/                # Utility functions
+│   └── api/                  # External API integration
+├── docs/                  # Documentation
+│   ├── architecture-overview.md    # System architecture
+│   ├── function-reference.md       # Function documentation
+│   ├── data-flow-map.md           # Data pipeline mapping
+│   ├── prd-real-property-calculator-revised.md  # Business requirements
+│   └── tasks-prd-real-property-calculator-revised.md  # Implementation tasks
+└── *.mdc                  # MDC workflow files
+```
 
-    ![Example of starting on a task with process-task-list.mdc](https://pbs.twimg.com/media/Go6I41KWcAAAlHc?format=jpg&name=medium)
+## Getting Started for Development
 
-### 5️⃣ Review, Approve, and Progress ✅
+### Prerequisites
+```bash
+npm install
+```
 
-As the AI completes each task, you review the changes.
+### Development Commands
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run test         # Run test suite
+npm run lint         # Lint code
+```
 
-* If the changes are good, simply reply with "yes" (or a similar affirmative) to instruct the AI to mark the task complete and move to the next one.
-* If changes are needed, provide feedback to the AI to correct the current task before moving on.
+### For AI Models Working on This Codebase
 
-You'll see a satisfying list of completed items grow, providing a clear visual of your feature coming to life!
+1. **Read Architecture First**: Start with `docs/architecture-overview.md`
+2. **Understand Data Flow**: Review `docs/data-flow-map.md`  
+3. **Check Function Reference**: Use `docs/function-reference.md` for API details
+4. **Follow Protocols**: Apply permanent developer protocols for all changes
+5. **Verify Integration**: Ensure chart and table use same data sources
 
-![Example of a progressing task list with completed items](https://pbs.twimg.com/media/Go6KrXZWkAA_UuX?format=jpg&name=medium)
+### Key Dates & Timeline
+- **Last Bitcoin Halving**: April 20, 2024
+- **Current Date**: Dynamic (new Date())
+- **Loan Start**: First day of current month (Month 1)
+- **Cycle Position**: Calculated dynamically from current date
 
-While it's not always perfect, this method has proven to be a very reliable way to build out larger features with AI assistance.
+## Contributing
 
-### Video Demonstration 🎥
+This project follows a structured MDC workflow for feature development:
 
-If you'd like to see this in action, I demonstrated it on [Claire Vo's "How I AI" podcast](https://www.youtube.com/watch?v=fD4ktSkNCw4).
+1. **PRD Creation**: Use `create-prd.mdc` for new features
+2. **Task Generation**: Use `generate-tasks.mdc` to break down PRDs  
+3. **Implementation**: Use `process-task-list.mdc` for systematic development
+4. **Architecture Review**: Always consult technical documentation before changes
 
-![Demonstration of AI Dev Tasks on How I AI Podcast](https://img.youtube.com/vi/fD4ktSkNCw4/maxresdefault.jpg)
+## License
 
-## 🗂️ Files in this Repository
-
-* **`create-prd.mdc`**: Guides the AI in generating a Product Requirement Document for your feature.
-* **`generate-tasks.mdc`**: Takes a PRD markdown file as input and helps the AI break it down into a detailed, step-by-step implementation task list.
-* **`process-task-list.mdc`**: Instructs the AI on how to process the generated task list, tackling one task at a time and waiting for your approval before proceeding. (This file also contains logic for the AI to mark tasks as complete).
-
-## 🌟 Benefits
-
-* **Structured Development:** Enforces a clear process from idea to code.
-* **Step-by-Step Verification:** Allows you to review and approve AI-generated code at each small step, ensuring quality and control.
-* **Manages Complexity:** Breaks down large features into smaller, digestible tasks for the AI, reducing the chance of it getting lost or generating overly complex, incorrect code.
-* **Improved Reliability:** Offers a more dependable approach to leveraging AI for significant development work compared to single, large prompts.
-* **Clear Progress Tracking:** Provides a visual representation of completed tasks, making it easy to see how much has been done and what's next.
-
-## 🛠️ How to Use
-
-1. **Clone or Download:** Get these `.mdc` files into your project or a central location where Cursor can access them.
-2. **Follow the Workflow:** Systematically use the `.mdc` files in Cursor's Agent chat as described in the 5-step workflow above.
-3. **Adapt and Iterate:**
-    * Feel free to modify the prompts within the `.mdc` files to better suit your specific needs or coding style.
-    * If the AI struggles with a task, try rephrasing your initial feature description or breaking down tasks even further.
-
-## 💡 Tips for Success
-
-* **Be Specific:** The more context and clear instructions you provide (both in your initial feature description and any clarifications), the better the AI's output will be.
-* **MAX Mode for PRDs:** As mentioned, using MAX mode in Cursor for PRD creation (`create-prd.mdc`) can yield more thorough and higher-quality results if your budget supports it.
-* **Correct File Tagging:** Always ensure you're accurately tagging the PRD filename (e.g., `@MyFeature-PRD.md`) when generating tasks.
-* **Patience and Iteration:** AI is a powerful tool, but it's not magic. Be prepared to guide, correct, and iterate. This workflow is designed to make that iteration process smoother.
-
-## 🤝 Contributing
-
-Got ideas to improve these `.mdc` files or have new ones that fit this workflow? Contributions are welcome!
-
-Please feel free to:
-
-* Open an issue to discuss changes or suggest new features.
-* Submit a pull request with your enhancements.
+Private project for KrigerDanes Bitcoin Real Estate Calculator.
 
 ---
 
-Happy AI-assisted developing!
+**For AI Models**: This project requires architecture-first development. Always read the technical documentation before making changes to prevent data flow issues and maintain system integrity.

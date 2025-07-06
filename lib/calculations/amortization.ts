@@ -95,8 +95,13 @@ export function calculatePropertyAppreciation(
   annualAppreciationRate: number,
   monthNumber: number
 ): number {
+  // Property appreciation starts in month 2 (month 1 = no appreciation)
+  if (monthNumber <= 1) {
+    return 0;
+  }
+  
   const monthlyRate = annualAppreciationRate / 12;
-  const appreciatedValue = initialValue * Math.pow(1 + monthlyRate, monthNumber);
+  const appreciatedValue = initialValue * Math.pow(1 + monthlyRate, monthNumber - 1);
   return appreciatedValue - initialValue;
 }
 
@@ -106,7 +111,8 @@ export function calculatePropertyAppreciation(
  */
 export function createBaseAmortizationSchedule(
   inputs: CalculatorInputs,
-  maxMonths: number = 360 // 30 years max
+  maxMonths: number = 360, // 30 years max
+  loanStartDate?: Date // Optional loan start date override
 ): Omit<MonthlyAmortizationEntry, 'btcHeld' | 'btcValue' | 'btcSpotPrice' | 'btcPerformed' | 'totalAsset' | 'btcSoldMonthly' | 'remainingBTC' | 'payoffTriggerMet'>[] {
   const schedule: Omit<MonthlyAmortizationEntry, 'btcHeld' | 'btcValue' | 'btcSpotPrice' | 'btcPerformed' | 'totalAsset' | 'btcSoldMonthly' | 'remainingBTC' | 'payoffTriggerMet'>[] = [];
   
@@ -136,10 +142,14 @@ export function createBaseAmortizationSchedule(
   // Calculate monthly payment
   const monthlyPayment = calculateMonthlyPayment(loanAmount, interestRate, termYears);
   
-  // Property appreciation rate (assume 3% annually for now)
-  const propertyAppreciationRate = 0.03;
+  // Property appreciation rate from user input
+  const propertyAppreciationRate = property.appreciationRate || 0.03;
   
-  const startDate = new Date(2024, 3, 1); // Start from April 2024
+  // Use provided loan start date or default to first day of current month
+  const startDate = loanStartDate || (() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  })();
   
   for (let month = 1; month <= maxMonths; month++) {
     const currentDate = new Date(startDate);
