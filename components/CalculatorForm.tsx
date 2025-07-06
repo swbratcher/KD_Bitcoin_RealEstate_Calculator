@@ -615,45 +615,11 @@ export default function CalculatorForm({
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mortgage Int Rate *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={currentInterestRate}
-                  onChange={(e) => setCurrentInterestRate(e.target.value)}
-                  className={`input-field pr-8 ${getError('currentInterestRate') ? 'border-red-500' : ''}`}
-                  placeholder="4.0"
-                  required
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-              </div>
-              {getError('currentInterestRate') && (
-                <p className="mt-1 text-sm text-red-600">{getError('currentInterestRate')}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Remaining Years
-              </label>
-              <input
-                type="number"
-                value={remainingYears}
-                onChange={(e) => setRemainingYears(e.target.value)}
-                className="input-field"
-                placeholder="20"
-              />
-            </div>
           </div>
         </div>
 
         {/* Property Income & Expenses */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Property Income & Expenses</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -715,8 +681,6 @@ export default function CalculatorForm({
 
         {/* Available Equity Summary */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Available Equity</h3>
-          
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="text-xl font-semibold text-blue-900">
               ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
@@ -755,6 +719,50 @@ export default function CalculatorForm({
               HELOC
             </button>
           </div>
+          
+          {/* Current Mortgage Details - Only show for HELOC */}
+          {loanType === 'heloc' && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <h4 className="text-md font-semibold text-gray-800 mb-3">Current Mortgage Details</h4>
+              <p className="text-sm text-gray-600 mb-3">These details about your existing mortgage are needed for HELOC calculations</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Mortgage Interest Rate *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={currentInterestRate}
+                      onChange={(e) => setCurrentInterestRate(e.target.value)}
+                      className={`input-field pr-8 ${getError('currentInterestRate') ? 'border-red-500' : ''}`}
+                      placeholder="4.0"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                  </div>
+                  {getError('currentInterestRate') && (
+                    <p className="mt-1 text-sm text-red-600">{getError('currentInterestRate')}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Mortgage Remaining Years
+                  </label>
+                  <input
+                    type="number"
+                    value={remainingYears}
+                    onChange={(e) => setRemainingYears(e.target.value)}
+                    className="input-field"
+                    placeholder="20"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Cash-Out Amount */}
