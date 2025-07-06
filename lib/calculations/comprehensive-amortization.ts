@@ -41,12 +41,13 @@ export function generateComprehensiveAmortizationTable(
 ): MonthlyAmortizationEntry[] {
   const { property, refinanceScenario, bitcoinInvestment, propertyIncome, payoffTrigger } = inputs;
   
-  // Calculate exact loan term length (no more hardcoded 360 months)
+  // Always calculate minimum 20 years (240 months), even if loan is shorter or paid off early
   const loanTermMonths = maxMonths || (
     refinanceScenario.type === 'cash-out-refinance' ? 
       refinanceScenario.newLoanTermYears * 12 :
       30 * 12 // Default to 30 years for HELOC
   );
+  const calculationMonths = Math.max(240, loanTermMonths); // Minimum 20 years
   
   // Get loan start date from performance settings or default to current month
   const loanStartDate = inputs.bitcoinInvestment.performanceSettings.loanStartDate || (() => {
@@ -54,11 +55,11 @@ export function generateComprehensiveAmortizationTable(
     return new Date(today.getFullYear(), today.getMonth(), 1);
   })();
 
-  // Get base amortization schedule (debt paydown only)
+  // Get base amortization schedule (debt paydown only) - use original loan term
   const baseSchedule = createBaseAmortizationSchedule(inputs, loanTermMonths, loanStartDate);
   
-  // Get enhanced Bitcoin performance timeline with real halving alignment
-  const bitcoinPerformance = generateEnhancedBitcoinPerformanceTimeline(inputs, loanTermMonths);
+  // Get enhanced Bitcoin performance timeline with real halving alignment - use full calculation period
+  const bitcoinPerformance = generateEnhancedBitcoinPerformanceTimeline(inputs, calculationMonths);
   
   // Initialize Bitcoin tracking variables
   const initialBTCInvestment = bitcoinInvestment.investmentAmount;
@@ -71,8 +72,8 @@ export function generateComprehensiveAmortizationTable(
   
   const comprehensiveSchedule: MonthlyAmortizationEntry[] = [];
   
-  for (let i = 0; i < baseSchedule.length && i < bitcoinPerformance.length; i++) {
-    const baseEntry = baseSchedule[i];
+  for (let i = 0; i < calculationMonths && i < bitcoinPerformance.length; i++) {
+    const baseEntry = baseSchedule[i]; // May be undefined after loan term
     const btcPerformance = bitcoinPerformance[i];
     
     // Calculate Bitcoin data for this month using enhanced algorithm
@@ -89,42 +90,69 @@ export function generateComprehensiveAmortizationTable(
     // Update the performance entry with calculated spot price
     bitcoinPerformance[i].spotPrice = btcSpotPrice;
     
-    // Calculate cash flow shortfall
-    const totalMonthlyExpenses = baseEntry.monthlyPayment + 
-      propertyIncome.monthlyTaxes + 
-      propertyIncome.monthlyInsurance + 
-      propertyIncome.monthlyHOA;
+    // Determine if we're in loan period or post-payoff period
+    const isLoanActive = baseEntry && baseEntry.debtBalance > 0;
     
-    const monthlyCashFlowShortfall = Math.max(0, totalMonthlyExpenses - propertyIncome.monthlyRentalIncome);
+    // Calculate cash flow shortfall (only during loan period)
+    let monthlyCashFlowShortfall = 0;
+    let btcSales = { btcToSell: 0, dollarAmount: 0, remainingBTC };
     
-    // Calculate BTC sales needed to cover shortfall
-    const btcSales = calculateBTCSalesForShortfall(
-      monthlyCashFlowShortfall, 
-      btcSpotPrice, 
-      remainingBTC
+    if (isLoanActive) {
+      const totalMonthlyExpenses = baseEntry.monthlyPayment + 
+        propertyIncome.monthlyTaxes + 
+        propertyIncome.monthlyInsurance + 
+        propertyIncome.monthlyHOA;
+      
+      monthlyCashFlowShortfall = Math.max(0, totalMonthlyExpenses - propertyIncome.monthlyRentalIncome);
+      
+      // Calculate BTC sales needed to cover shortfall
+      btcSales = calculateBTCSalesForShortfall(
+        monthlyCashFlowShortfall, 
+        btcSpotPrice, 
+        remainingBTC
+      );
+      
+      // Update BTC holdings
+      remainingBTC = btcSales.remainingBTC;
+      cumulativeBTCSold += btcSales.btcToSell;
+    }
+    // Post-loan period: no more BTC sales, BTC continues to grow
+    
+    // Calculate property appreciation (continues growing even after loan payoff)
+    const propertyAppreciation = calculatePropertyAppreciation(
+      property.currentValue,
+      property.appreciationRate || 0.03,
+      i + 1 // month number (1-based)
     );
     
-    // Update BTC holdings
-    remainingBTC = btcSales.remainingBTC;
-    cumulativeBTCSold += btcSales.btcToSell;
-    
-    // Calculate total asset value
-    const propertyValue = property.currentValue + baseEntry.propertyAppreciation;
+    // Calculate values based on loan status
+    const debtBalance = isLoanActive ? baseEntry.debtBalance : 0;
+    const baseEquity = property.currentValue - debtBalance;
+    const propertyValue = property.currentValue + propertyAppreciation;
     const totalAsset = propertyValue + btcValue;
     
-    // Calculate payoff trigger analysis
-    const payoffTriggerMet = checkPayoffTrigger(
-      btcValue, 
-      baseEntry.debtBalance, 
-      payoffTrigger
-    );
+    // Calculate payoff trigger analysis (only relevant during loan period)
+    const payoffTriggerMet = isLoanActive ? checkPayoffTrigger(btcValue, debtBalance, payoffTrigger) : false;
+    const canPayOff = isLoanActive ? btcValue >= debtBalance : true;
+    const payoffAmount = debtBalance; // Amount needed for full payoff
+    const surplus = canPayOff ? btcValue - debtBalance : btcValue;
     
-    const canPayOff = btcValue >= baseEntry.debtBalance;
-    const surplus = canPayOff ? btcValue - baseEntry.debtBalance : 0;
+    // Calculate date for this month
+    const currentDate = new Date(loanStartDate);
+    currentDate.setMonth(loanStartDate.getMonth() + i);
+    const dateString = currentDate.toISOString().split('T')[0];
+    const yearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     
     // Create comprehensive entry
     const entry: MonthlyAmortizationEntry = {
-      ...baseEntry,
+      month: i + 1,
+      date: dateString,
+      yearMonth,
+      debtBalance,
+      baseEquity,
+      propertyAppreciation,
+      monthlyPayment: isLoanActive ? baseEntry.monthlyPayment : 0,
+      netCashFlow: isLoanActive ? baseEntry.netCashFlow : propertyIncome.monthlyRentalIncome - (propertyIncome.monthlyTaxes + propertyIncome.monthlyInsurance + propertyIncome.monthlyHOA),
       // Bitcoin data
       btcHeld: remainingBTC,
       btcValue,
@@ -137,15 +165,13 @@ export function generateComprehensiveAmortizationTable(
       // Payoff analysis
       payoffTriggerMet,
       canPayOff,
+      payoffAmount,
       surplus
     };
     
     comprehensiveSchedule.push(entry);
     
-    // If payoff trigger is met and we can pay off, break the loop
-    if (payoffTriggerMet && canPayOff) {
-      break;
-    }
+    // Continue to 20 years minimum even after payoff trigger is met
   }
   
   return comprehensiveSchedule;
