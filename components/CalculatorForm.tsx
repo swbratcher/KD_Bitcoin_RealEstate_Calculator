@@ -90,7 +90,7 @@ export default function CalculatorForm({
   const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
   const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('70'); // Default 70% drawdown
   const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('bullish'); // bearish, realist, bullish, 3xmaxi, custom
-  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('25');
+  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('40');
   
   // NEW: Enhanced Bitcoin algorithm settings
   const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(false);
@@ -662,6 +662,7 @@ export default function CalculatorForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Max Cash-Out block (left on desktop, bottom on mobile) */}
             <div className="bg-blue-50 p-4 rounded-lg order-2 md:order-1">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Current Equity</h4>
               <div className="text-xl font-semibold text-blue-900">
                 ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
               </div>
@@ -980,27 +981,161 @@ export default function CalculatorForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Row 1: Sentiment Auto-Config (left) and Price Model + Cycle Settings (right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sentiment Auto-Config (left) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Performance Model
+                Sentiment Auto-Config
               </label>
-              <select
-                value={bitcoinPerformanceModel}
-                onChange={(e) => setBitcoinPerformanceModel(e.target.value)}
-                className="input-field"
-              >
-                <option value="cycles">Cycles</option>
-                <option value="flat">Flat</option>
-              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBitcoinPerformanceSentiment('realist');
+                    setCustomAnnualGrowthRate('20');
+                  }}
+                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                    bitcoinPerformanceSentiment === 'realist' 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Realist
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBitcoinPerformanceSentiment('bullish');
+                    setCustomAnnualGrowthRate('40');
+                  }}
+                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                    bitcoinPerformanceSentiment === 'bullish' 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Bullish
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBitcoinPerformanceSentiment('3xmaxi');
+                    setCustomAnnualGrowthRate('60');
+                  }}
+                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                    bitcoinPerformanceSentiment === '3xmaxi' 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  3x Maxi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBitcoinPerformanceSentiment('bearish');
+                    setCustomAnnualGrowthRate('-20');
+                  }}
+                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                    bitcoinPerformanceSentiment === 'bearish' 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Bearish
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Click to set growth rate or enter custom value in Avg Annual Return
+              </p>
+            </div>
+
+            {/* Price Model and Cycle Settings (right) */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price Model
+                </label>
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setBitcoinPerformanceModel('cycles')}
+                    className={`px-4 py-2 rounded-lg border transition-colors ${
+                      bitcoinPerformanceModel === 'cycles' 
+                        ? 'bg-blue-500 text-white border-blue-500' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    4yr Cycles
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBitcoinPerformanceModel('flat')}
+                    className={`px-4 py-2 rounded-lg border transition-colors ${
+                      bitcoinPerformanceModel === 'flat' 
+                        ? 'bg-blue-500 text-white border-blue-500' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Flat Growth
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Cycles use market patterns, Flat uses steady growth
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cycle Settings
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="enableDiminishingReturns"
+                    checked={enableDiminishingReturns}
+                    onChange={(e) => setEnableDiminishingReturns(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="enableDiminishingReturns" className="ml-2 block text-sm text-gray-900">
+                    Enable Diminishing Returns
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Avg Annual Return and Bear Cycle Drawdown */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Avg Annual Return
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={customAnnualGrowthRate}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCustomAnnualGrowthRate(value);
+                    // Clear sentiment selection when manually editing
+                    setBitcoinPerformanceSentiment('');
+                  }}
+                  className="input-field pr-8"
+                  placeholder="25"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+              </div>
               <p className="mt-1 text-xs text-gray-500">
-                Cycles use market patterns, Flat uses steady growth
+                Annual growth rate expectation
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Max Drawdown
+                Bear Cycle Drawdown
               </label>
               <div className="relative">
                 <input
@@ -1019,109 +1154,30 @@ export default function CalculatorForm({
                 Maximum drawdown after bull market tops
               </p>
             </div>
+          </div>
 
+          {/* Diminishing Returns Final CAGR (conditional) */}
+          {enableDiminishingReturns && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Performance Sentiment
-              </label>
-              <select
-                value={bitcoinPerformanceSentiment}
-                onChange={(e) => setBitcoinPerformanceSentiment(e.target.value)}
-                className="input-field"
-              >
-                <option value="bearish">Bearish (-20%)</option>
-                <option value="realist">Realist (20%)</option>
-                <option value="bullish">Bullish (40%)</option>
-                <option value="3xmaxi">3xMaxi (60%)</option>
-                <option value="custom">Custom</option>
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Annual growth rate expectation
-              </p>
-            </div>
-
-            {bitcoinPerformanceSentiment === 'custom' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Custom Annual Growth Rate
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={customAnnualGrowthRate}
-                    onChange={(e) => setCustomAnnualGrowthRate(e.target.value)}
-                    className="input-field pr-8"
-                    placeholder="25"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Appreciation
+                Final CAGR (Last Cycle)
               </label>
               <div className="relative">
                 <input
                   type="number"
                   step="0.1"
-                  value={propertyAppreciationRate}
-                  onChange={(e) => setPropertyAppreciationRate(e.target.value)}
+                  value={finalCAGR}
+                  onChange={(e) => setFinalCAGR(e.target.value)}
                   className="input-field pr-8"
-                  placeholder="3"
+                  placeholder="10"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Annual property value appreciation
+                Bitcoin performance will decline from initial to final CAGR over loan term
               </p>
             </div>
-          </div>
-
-          {/* Enhanced Algorithm Settings */}
-          <div className="mt-6 space-y-4">
-            <h4 className="text-md font-semibold text-gray-800">Enhanced Algorithm Settings</h4>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <div className="flex items-center mb-3">
-                  <input
-                    type="checkbox"
-                    id="enableDiminishingReturns"
-                    checked={enableDiminishingReturns}
-                    onChange={(e) => setEnableDiminishingReturns(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <label htmlFor="enableDiminishingReturns" className="text-sm font-medium text-gray-700">
-                    Enable Diminishing Returns
-                  </label>
-                </div>
-                {enableDiminishingReturns && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Final CAGR (Last Cycle)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={finalCAGR}
-                        onChange={(e) => setFinalCAGR(e.target.value)}
-                        className="input-field pr-8"
-                        placeholder="10"
-                      />
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Bitcoin performance will decline from initial to final CAGR over loan term
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Payoff Trigger Settings - MOVED ABOVE BITCOIN PERFORMANCE REPORT */}
