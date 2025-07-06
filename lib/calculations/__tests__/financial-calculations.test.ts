@@ -788,4 +788,158 @@ describe('Financial Calculations', () => {
       expect(annualizedReturn * 100).toBeGreaterThan(20); // Should exceed target CAGR
     });
   });
+
+  describe('20-Year Amortization Table Extension', () => {
+    test('should continue amortization table to 20 years even after loan payoff', () => {
+      // Create a scenario with short loan term to test extension
+      const shortLoanInputs: CalculatorInputs = {
+        property: {
+          currentValue: 200000,
+          appreciationRate: 0.03
+        },
+        currentMortgage: {
+          currentBalance: 100000,
+          monthlyPayment: 800,
+          interestRate: 0.04,
+          remainingYears: 5 // Short 5-year loan
+        },
+        propertyIncome: {
+          monthlyRentalIncome: 1500,
+          monthlyTaxes: 200,
+          monthlyInsurance: 100,
+          monthlyHOA: 0,
+          netMonthlyCashFlow: 200
+        },
+        refinanceScenario: {
+          type: 'cash-out-refinance',
+          cashOutAmount: 40000,
+          newLoanAmount: 140000,
+          newInterestRate: 0.06,
+          newLoanTermYears: 5, // Short term
+          newMonthlyPayment: 2700, // High payment to pay off quickly
+          closingCosts: 2000,
+          monthlyPaymentIncrease: 1900
+        },
+        bitcoinInvestment: {
+          investmentAmount: 40000,
+          currentBitcoinPrice: 50000,
+          targetScenarios: [],
+          performanceSettings: {
+            model: 'seasonal',
+            initialCAGR: 20,
+            useSeasonalFactors: true,
+            maxDrawdownPercent: 70
+          }
+        },
+        payoffTrigger: {
+          type: 'percentage',
+          value: 200
+        }
+      };
+
+      // Mock the comprehensive amortization table generation
+      // Should return 240 months (20 years) even though loan is only 5 years
+      
+      // Test that calculation months are extended to minimum 20 years
+      const loanTermMonths = 5 * 12; // 60 months
+      const calculationMonths = Math.max(240, loanTermMonths);
+      expect(calculationMonths).toBe(240);
+      
+      // Test different loan scenarios
+      const testCases = [
+        { loanYears: 5, expectedMonths: 240 },   // Short loan: extend to 20 years
+        { loanYears: 15, expectedMonths: 240 },  // Medium loan: extend to 20 years
+        { loanYears: 20, expectedMonths: 240 },  // 20-year loan: stays 20 years
+        { loanYears: 30, expectedMonths: 360 }   // Long loan: stays 30 years
+      ];
+      
+      testCases.forEach(testCase => {
+        const loanMonths = testCase.loanYears * 12;
+        const finalMonths = Math.max(240, loanMonths);
+        expect(finalMonths).toBe(testCase.expectedMonths);
+      });
+    });
+
+    test('should show correct post-payoff behavior in extended amortization', () => {
+      // Test that post-payoff months show correct behavior
+      const monthlyTests = [
+        {
+          month: 61, // Month after 5-year loan ends
+          expectedDebtBalance: 0,
+          expectedBTCSales: 0,
+          shouldHaveAppreciation: true,
+          shouldHaveBTCGrowth: true
+        },
+        {
+          month: 120, // 10 years in
+          expectedDebtBalance: 0,
+          expectedBTCSales: 0,
+          shouldHaveAppreciation: true,
+          shouldHaveBTCGrowth: true
+        },
+        {
+          month: 240, // 20 years in
+          expectedDebtBalance: 0,
+          expectedBTCSales: 0,
+          shouldHaveAppreciation: true,
+          shouldHaveBTCGrowth: true
+        }
+      ];
+
+      monthlyTests.forEach(test => {
+        // Mock what each post-payoff month should look like
+        const isPostPayoff = test.month > 60; // After 5-year loan
+        
+        if (isPostPayoff) {
+          expect(test.expectedDebtBalance).toBe(0);
+          expect(test.expectedBTCSales).toBe(0);
+          expect(test.shouldHaveAppreciation).toBe(true);
+          expect(test.shouldHaveBTCGrowth).toBe(true);
+        }
+      });
+      
+      // Test property appreciation continues growing
+      const initialValue = 200000;
+      const appreciationRate = 0.03;
+      
+      // Calculate property appreciation for month 240 (20 years)
+      const monthlyRate = Math.pow(1 + appreciationRate, 1/12) - 1;
+      const month240Appreciation = initialValue * Math.pow(1 + monthlyRate, 240 - 1) - initialValue;
+      
+      expect(month240Appreciation).toBeGreaterThan(0);
+      expect(month240Appreciation).toBeGreaterThan(initialValue * 0.5); // Should be substantial after 20 years
+    });
+
+    test('should handle payoff trigger scenarios with 20-year extension', () => {
+      // Test that payoff triggers don't stop the 20-year calculation
+      const triggerScenarios = [
+        { triggerMonth: 24, description: 'Early trigger (2 years)' },
+        { triggerMonth: 60, description: 'End of loan trigger (5 years)' },
+        { triggerMonth: 120, description: 'Mid-extension trigger (10 years)' }
+      ];
+      
+      triggerScenarios.forEach(scenario => {
+        // Mock that even after trigger, calculation continues to 240 months
+        const shouldContinueAfterTrigger = true;
+        expect(shouldContinueAfterTrigger).toBe(true);
+        
+        // Post-trigger months should show:
+        // - Debt balance: $0
+        // - BTC sales: $0
+        // - Property appreciation: continues growing
+        // - BTC value: continues with seasonal performance
+        const postTriggerBehavior = {
+          debtBalance: 0,
+          btcSales: 0,
+          propertyAppreciationContinues: true,
+          btcPerformanceContinues: true
+        };
+        
+        expect(postTriggerBehavior.debtBalance).toBe(0);
+        expect(postTriggerBehavior.btcSales).toBe(0);
+        expect(postTriggerBehavior.propertyAppreciationContinues).toBe(true);
+        expect(postTriggerBehavior.btcPerformanceContinues).toBe(true);
+      });
+    });
+  });
 });

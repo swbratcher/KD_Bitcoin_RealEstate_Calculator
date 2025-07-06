@@ -79,9 +79,7 @@ export default function CalculatorForm({
   const [equityTargetPercent, setEquityTargetPercent] = useState<string>('20');
 
   // NEW: Property income and payment breakdown
-  const [monthlyRentalIncome, setMonthlyRentalIncome] = useState<string>('600');
-  const [monthlyTaxes, setMonthlyTaxes] = useState<string>('100');
-  const [monthlyInsurance, setMonthlyInsurance] = useState<string>('100');
+  const [monthlyTaxesInsurance, setMonthlyTaxesInsurance] = useState<string>('200');
   const [monthlyHOA, setMonthlyHOA] = useState<string>('0');
   
   // NEW: Payoff trigger settings
@@ -160,7 +158,7 @@ export default function CalculatorForm({
         const newPI = principal * (rate * Math.pow(1 + rate, terms)) / (Math.pow(1 + rate, terms) - 1);
         
         // Add original T&I to new P&I to get total payment
-        const originalTI = (parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0);
+        const originalTI = parseFloat(monthlyTaxesInsurance) || 0;
         const totalNewPayment = newPI + originalTI;
         
         setEstimatedNewPayment(totalNewPayment);
@@ -173,7 +171,7 @@ export default function CalculatorForm({
       const currentMortgagePayment = parseFloat(monthlyPayment) || 0;
       setEstimatedNewPayment(currentMortgagePayment + interestOnly);
     }
-  }, [loanType, currentBalance, cashOutAmount, closingCosts, newInterestRate, newLoanTermYears, helocInterestRate, monthlyTaxes, monthlyInsurance, monthlyPayment]);
+  }, [loanType, currentBalance, cashOutAmount, closingCosts, newInterestRate, newLoanTermYears, helocInterestRate, monthlyTaxesInsurance, monthlyPayment]);
 
   // Calculate shortfall
   useEffect(() => {
@@ -198,12 +196,6 @@ export default function CalculatorForm({
     }
   }, [monthlyPayment, userDesiredPayment]);
 
-  // Set monthly rental income to current monthly payment as default
-  useEffect(() => {
-    if (!monthlyRentalIncome && monthlyPayment) {
-      setMonthlyRentalIncome(monthlyPayment);
-    }
-  }, [monthlyPayment, monthlyRentalIncome]);
 
   // Auto-trigger calculations when key fields change
   useEffect(() => {
@@ -224,7 +216,7 @@ export default function CalculatorForm({
       }
     }
   }, [propertyValue, currentBalance, monthlyPayment, currentInterestRate, remainingYears,
-      monthlyRentalIncome, monthlyTaxes, monthlyInsurance, monthlyHOA, loanType,
+      monthlyTaxesInsurance, monthlyHOA, loanType,
       cashOutAmount, newLoanTermYears, newInterestRate, closingCosts, helocInterestRate,
       helocTermYears, payoffTriggerType, payoffTriggerValue, bitcoinPerformanceModel,
       bitcoinDrawdownPercent, bitcoinPerformanceSentiment, customAnnualGrowthRate, 
@@ -232,16 +224,17 @@ export default function CalculatorForm({
 
   // Calculate net monthly cash flow
   useEffect(() => {
-    const rentalIncome = parseFloat(monthlyRentalIncome) || 0;
-    const taxes = parseFloat(monthlyTaxes) || 0;
-    const insurance = parseFloat(monthlyInsurance) || 0;
+    const desiredPayment = parseFloat(userDesiredPayment) || 0;
+    const taxesInsurance = parseFloat(monthlyTaxesInsurance) || 0;
     const hoa = parseFloat(monthlyHOA) || 0;
     const mortgagePI = parseFloat(monthlyPayment) || 0;
     
-    // Net cash flow = Rental Income - (Taxes + Insurance + HOA + Current Mortgage P&I)
-    const netCashFlow = rentalIncome - (taxes + insurance + hoa + mortgagePI);
+    // Net cash flow = Desired Payment - (Taxes+Insurance + HOA + Current Mortgage P&I)
+    // Negative means shortfall that will be covered by BTC sales
+    const totalExpenses = taxesInsurance + hoa + mortgagePI;
+    const netCashFlow = desiredPayment - totalExpenses;
     setNetMonthlyCashFlow(netCashFlow);
-  }, [monthlyRentalIncome, monthlyTaxes, monthlyInsurance, monthlyHOA, monthlyPayment]);
+  }, [userDesiredPayment, monthlyTaxesInsurance, monthlyHOA, monthlyPayment]);
 
   const fetchCurrentBitcoinPrice = async () => {
     setBitcoinLoading(true);
@@ -326,7 +319,7 @@ export default function CalculatorForm({
 
     const property: PropertyData = {
       currentValue: parseFloat(propertyValue),
-      purchasePrice: parseFloat(purchasePrice),
+      purchasePrice: parseFloat(propertyValue), // Use current value as purchase price since we don't collect it
       purchaseYear: parseInt(purchaseYear),
       appreciationRate: parseFloat(propertyAppreciationRate) / 100, // Convert to decimal
     };
@@ -353,9 +346,9 @@ export default function CalculatorForm({
 
     // NEW: Property income data
     const propertyIncome = {
-      monthlyRentalIncome: parseFloat(monthlyRentalIncome) || 0,
-      monthlyTaxes: parseFloat(monthlyTaxes) || 0,
-      monthlyInsurance: parseFloat(monthlyInsurance) || 0,
+      monthlyRentalIncome: parseFloat(userDesiredPayment) || 0,
+      monthlyTaxes: parseFloat(monthlyTaxesInsurance) || 0,
+      monthlyInsurance: 0, // Now included in monthlyTaxes
       monthlyHOA: parseFloat(monthlyHOA) || 0,
       netMonthlyCashFlow: netMonthlyCashFlow,
     };
@@ -414,9 +407,9 @@ export default function CalculatorForm({
     return Math.round(amount).toLocaleString();
   };
 
-  // Helper function to calculate original T&I amount
-  const getOriginalTI = (): number => {
-    return (parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0);
+  // Helper function to get combined T&I amount
+  const getTaxesInsurance = (): number => {
+    return parseFloat(monthlyTaxesInsurance) || 0;
   };
 
   // Helper function to get sentiment percentage
@@ -564,21 +557,6 @@ export default function CalculatorForm({
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Purchase Price
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={purchasePrice}
-                  onChange={(e) => setPurchasePrice(e.target.value)}
-                  className="input-field pl-8"
-                  placeholder="100,000"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -600,12 +578,11 @@ export default function CalculatorForm({
 
         {/* Current Mortgage */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Current Mortgage</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Balance *
+                Mortgage Balance *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -653,7 +630,7 @@ export default function CalculatorForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Interest Rate *
+                Mortgage Int Rate *
               </label>
               <div className="relative">
                 <input
@@ -694,63 +671,20 @@ export default function CalculatorForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <span className="flex items-center">
-                  Monthly Rental Income / Desired Payment
-                  <span 
-                    className="ml-1 text-blue-500 cursor-help" 
-                    title="Rental income or amount you want to pay monthly"
-                  >
-                    ℹ️
-                  </span>
-                </span>
+                Monthly Taxes & Insurance
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
-                  value={monthlyRentalIncome}
-                  onChange={(e) => setMonthlyRentalIncome(e.target.value)}
+                  value={monthlyTaxesInsurance}
+                  onChange={(e) => setMonthlyTaxesInsurance(e.target.value)}
                   className="input-field pl-8"
-                  placeholder="600"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Property Taxes (Optional)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={monthlyTaxes}
-                  onChange={(e) => setMonthlyTaxes(e.target.value)}
-                  className="input-field pl-8"
-                  placeholder="100"
+                  placeholder="200"
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Only enter if known separately from total payment
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Insurance (Optional)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={monthlyInsurance}
-                  onChange={(e) => setMonthlyInsurance(e.target.value)}
-                  className="input-field pl-8"
-                  placeholder="100"
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Only enter if known separately from total payment
+                Combined property taxes and insurance
               </p>
             </div>
 
@@ -777,11 +711,11 @@ export default function CalculatorForm({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">P&I Amount:</span>
-                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxes) || 0) - (parseFloat(monthlyInsurance) || 0))}</span>
+                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxesInsurance) || 0))}</span>
               </div>
               <div>
                 <span className="text-gray-600">T&I Amount:</span>
-                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyTaxes) || 0) + (parseFloat(monthlyInsurance) || 0))}</span>
+                <span className="font-semibold ml-2">${formatDollar(parseFloat(monthlyTaxesInsurance) || 0)}</span>
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
@@ -1034,8 +968,8 @@ export default function CalculatorForm({
                 <div className="font-semibold">${formatDollar(estimatedNewPayment)}</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {loanType === 'refinance' ? 
-                    (getOriginalTI() > 0 ? 
-                      `Includes $${formatDollar(getOriginalTI())} original Tax & Ins` : 
+                    (getTaxesInsurance() > 0 ? 
+                      `Includes $${formatDollar(getTaxesInsurance())} Tax & Insurance` : 
                       'P&I only - no Tax & Ins entered') :
                     'Current mortgage + HELOC payment'
                   }
