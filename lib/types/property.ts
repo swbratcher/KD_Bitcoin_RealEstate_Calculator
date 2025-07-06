@@ -102,12 +102,18 @@ export interface PropertyIncomeData {
 export interface BitcoinPerformanceSettings {
   /** Performance model type */
   model: 'seasonal' | 'steady' | 'custom';
-  /** Custom annual growth rate (if model is 'custom') */
-  customAnnualGrowthRate?: number;
+  /** Initial CAGR percentage for first cycle */
+  initialCAGR: number;
+  /** Final CAGR percentage for last cycle (optional - enables diminishing returns) */
+  finalCAGR?: number | null;
   /** Enable seasonal market cycle calculations */
   useSeasonalFactors: boolean;
-  /** Maximum drawdown percentage after bull market tops */
-  maxDrawdownPercent?: number;
+  /** Maximum drawdown percentage during bear season (30-80%) */
+  maxDrawdownPercent: number;
+  /** Loan start date for cycle positioning */
+  loanStartDate?: Date;
+  /** Risk tolerance setting */
+  riskTolerance?: 'conservative' | 'moderate' | 'aggressive' | 'custom';
 }
 
 // NEW: Payoff trigger settings

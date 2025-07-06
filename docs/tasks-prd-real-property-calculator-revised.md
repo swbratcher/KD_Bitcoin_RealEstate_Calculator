@@ -66,6 +66,11 @@ Based on PRD: `prd-real-property-calculator-revised.md`
 - [*] 2.4 Implement advanced Bitcoin performance scenarios with cycles/flat models (beyond 3 preset scenarios)
 - [*] 2.5 Build comprehensive risk assessment with BTC crashout status (beyond simple good/warning/poor)
 - [X] 2.6 Add comprehensive unit tests for all refinance calculations
+- [X] 2.7 Create halving date utilities for real-world cycle alignment
+- [X] 2.8 Implement enhanced Bitcoin algorithm with season-based cycles
+- [X] 2.9 Add diminishing returns support with dual CAGR inputs
+- [ ] 2.10 Integrate enhanced algorithm with existing comprehensive amortization
+- [ ] 2.11 Update UI controls for new Bitcoin performance settings
 
 ### 3.0 User Interface (MVP - Refinance Focus)
 - [*] 3.1 Build comprehensive input form (far beyond 4 fields - includes property income, expenses, etc.)

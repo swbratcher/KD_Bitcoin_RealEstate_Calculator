@@ -173,12 +173,20 @@ export interface BitcoinPerformanceData {
   monthlyPerformanceRate: number;
   /** Seasonal factor applied */
   seasonalFactor: number;
-  /** Market cycle phase (summer/fall/spring) */
-  cyclePhase: 'accumulation' | 'early_bull' | 'peak_bull' | 'bear' | 'steady';
-  /** Offset within 48-month cycle */
+  /** Market cycle phase (summer/fall/winter/spring) */
+  cyclePhase: 'summer' | 'fall' | 'winter' | 'spring' | 'steady';
+  /** Offset within 48-month cycle (0-47) */
   cycleOffset: number;
   /** Calculated spot price */
   spotPrice: number;
+  /** Current 4-year cycle number */
+  currentCycle?: number;
+  /** CAGR for current cycle */
+  cycleCAGR?: number;
+  /** Month number within loan term */
+  monthInLoanTerm?: number;
+  /** Absolute month in global cycle timeline */
+  absoluteMonthInGlobalCycle?: number;
 }
 
 // NEW: Stacked area chart data point
