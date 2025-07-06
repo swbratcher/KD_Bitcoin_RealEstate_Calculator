@@ -97,7 +97,6 @@ export default function CalculatorForm({
   // NEW: Enhanced Bitcoin algorithm settings
   const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(false);
   const [finalCAGR, setFinalCAGR] = useState<string>('10'); // Final CAGR for diminishing returns
-  const [loanStartDate, setLoanStartDate] = useState<string>('2025-07-01'); // Default, will be updated to current month
   
   // NEW: Property appreciation setting
   const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
@@ -115,13 +114,8 @@ export default function CalculatorForm({
     { name: 'Aggressive', targetPrice: 1000000, annualGrowthRate: 0.40, timeHorizonYears: 30 },
   ]);
 
-  // Initialize loan start date and fetch Bitcoin price on component mount
+  // Fetch current Bitcoin price on component mount
   useEffect(() => {
-    // Set loan start date to first day of current month
-    const today = new Date();
-    const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    setLoanStartDate(currentMonth.toISOString().split('T')[0]);
-    
     fetchCurrentBitcoinPrice();
   }, []);
 
@@ -234,7 +228,7 @@ export default function CalculatorForm({
       cashOutAmount, newLoanTermYears, newInterestRate, closingCosts, helocInterestRate,
       helocTermYears, payoffTriggerType, payoffTriggerValue, bitcoinPerformanceModel,
       bitcoinDrawdownPercent, bitcoinPerformanceSentiment, customAnnualGrowthRate, 
-      enableDiminishingReturns, finalCAGR, loanStartDate, propertyAppreciationRate, userDesiredPayment, currentBitcoinPrice]);
+      enableDiminishingReturns, finalCAGR, propertyAppreciationRate, userDesiredPayment, currentBitcoinPrice]);
 
   // Calculate net monthly cash flow
   useEffect(() => {
@@ -383,7 +377,7 @@ export default function CalculatorForm({
         finalCAGR: enableDiminishingReturns ? parseFloat(finalCAGR) || null : null,
         useSeasonalFactors: bitcoinPerformanceModel === 'cycles',
         maxDrawdownPercent: parseFloat(bitcoinDrawdownPercent) || 70,
-        loanStartDate: new Date(loanStartDate), // Configurable loan start date
+        loanStartDate: new Date(), // Auto-set to current date
       },
     };
 
@@ -1204,23 +1198,8 @@ export default function CalculatorForm({
           <div className="mt-6 space-y-4">
             <h4 className="text-md font-semibold text-gray-800">Enhanced Algorithm Settings</h4>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loan Start Date
-                </label>
-                <input
-                  type="date"
-                  value={loanStartDate}
-                  onChange={(e) => setLoanStartDate(e.target.value)}
-                  className="input-field"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Affects halving cycle positioning
-                </p>
-              </div>
-
-              <div className="col-span-2">
                 <div className="flex items-center mb-3">
                   <input
                     type="checkbox"
@@ -1334,7 +1313,7 @@ export default function CalculatorForm({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
                 <div>Model: <span className="font-semibold">{bitcoinPerformanceModel === 'cycles' ? 'Seasonal' : 'Steady'}</span></div>
                 <div>Diminishing Returns: <span className="font-semibold">{enableDiminishingReturns ? 'ON' : 'OFF'}</span></div>
-                <div>Loan Start: <span className="font-semibold">{loanStartDate}</span></div>
+                <div>Loan Start: <span className="font-semibold">Current Month</span></div>
                 <div>Max Drawdown: <span className="font-semibold">{bitcoinDrawdownPercent}%</span></div>
               </div>
             </div>

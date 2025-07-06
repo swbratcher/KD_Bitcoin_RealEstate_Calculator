@@ -88,7 +88,7 @@ export function calculateMonthlyPrincipalInterest(
 
 /**
  * Calculate property appreciation for a given month
- * Assumes steady appreciation rate
+ * Uses proper compound monthly appreciation against growing property value
  */
 export function calculatePropertyAppreciation(
   initialValue: number,
@@ -100,9 +100,14 @@ export function calculatePropertyAppreciation(
     return 0;
   }
   
-  const monthlyRate = annualAppreciationRate / 12;
-  const appreciatedValue = initialValue * Math.pow(1 + monthlyRate, monthNumber - 1);
-  return appreciatedValue - initialValue;
+  // Use proper monthly compounding: (1 + annual)^(1/12) - 1
+  const monthlyRate = Math.pow(1 + annualAppreciationRate, 1/12) - 1;
+  
+  // Calculate total property value after compound appreciation
+  const totalValue = initialValue * Math.pow(1 + monthlyRate, monthNumber - 1);
+  
+  // Return accumulated appreciation (total value - original value)
+  return totalValue - initialValue;
 }
 
 /**
@@ -178,7 +183,8 @@ export function createBaseAmortizationSchedule(
       propertyAppreciationRate,
       month
     );
-    const baseEquity = property.currentValue - debtBalance + propertyAppreciation;
+    // Base equity = original property value at loan origination - remaining debt (shows equity from loan paydown only)
+    const baseEquity = property.currentValue - debtBalance;
     
     // Net cash flow calculation
     const netCashFlow = propertyIncome.monthlyRentalIncome - 

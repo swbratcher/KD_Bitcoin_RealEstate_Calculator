@@ -257,7 +257,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">BTC Retained</h4>
             <p className="text-2xl font-bold text-orange-600">
-              {formatCurrency(payoffAnalysis.finalBTCRetained)}
+              {payoffAnalysis.finalBTCRetained.toFixed(8)} BTC
             </p>
           </div>
         </div>

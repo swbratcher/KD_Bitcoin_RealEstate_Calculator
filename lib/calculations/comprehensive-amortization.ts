@@ -183,23 +183,46 @@ export function generateStackedChartData(
   amortizationSchedule: MonthlyAmortizationEntry[],
   property: { currentValue: number }
 ): StackedChartDataPoint[] {
-  const maxMonths = Math.min(240, amortizationSchedule.length); // 20 years max
+  const chartMonths = 240; // Always 20 years regardless of loan term or payoff
   const chartData: StackedChartDataPoint[] = [];
   
-  for (let i = 0; i < maxMonths; i++) {
+  for (let i = 0; i < chartMonths; i++) {
     const entry = amortizationSchedule[i];
     
-    const dataPoint: StackedChartDataPoint = {
-      month: entry.month,
-      date: entry.date,
-      debt: entry.debtBalance,
-      baseEquity: property.currentValue - entry.debtBalance,
-      appreciation: entry.propertyAppreciation,
-      btcValue: entry.btcValue,
-      totalValue: entry.totalAsset
-    };
-    
-    chartData.push(dataPoint);
+    if (entry) {
+      // Use actual amortization data
+      const dataPoint: StackedChartDataPoint = {
+        month: entry.month,
+        date: entry.date,
+        debt: entry.debtBalance,
+        baseEquity: property.currentValue - entry.debtBalance,
+        appreciation: entry.propertyAppreciation,
+        btcValue: entry.btcValue,
+        totalValue: entry.totalAsset
+      };
+      chartData.push(dataPoint);
+    } else {
+      // Extend beyond amortization schedule (loan paid off or shorter term)
+      const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
+      const monthNumber = i + 1;
+      
+      // Calculate date for this month
+      const startDate = new Date(lastEntry?.date || new Date());
+      const currentDate = new Date(startDate);
+      currentDate.setMonth(startDate.getMonth() + (monthNumber - (lastEntry?.month || 1)));
+      
+      // After loan payoff: debt = 0, base equity = full property value
+      const dataPoint: StackedChartDataPoint = {
+        month: monthNumber,
+        date: currentDate.toISOString().split('T')[0],
+        debt: 0, // Loan is paid off
+        baseEquity: property.currentValue, // Full property value
+        appreciation: lastEntry?.propertyAppreciation || 0, // Keep last appreciation value
+        btcValue: lastEntry?.btcValue || 0, // Keep last BTC value
+        totalValue: property.currentValue + (lastEntry?.propertyAppreciation || 0) + (lastEntry?.btcValue || 0)
+      };
+      chartData.push(dataPoint);
+    }
   }
   
   return chartData;
@@ -232,7 +255,7 @@ export function analyzePayoffTrigger(
       triggerDate = entry.date;
       btcValueAtTrigger = entry.btcValue;
       debtAtTrigger = entry.debtBalance;
-      finalBTCRetained = entry.btcValue - entry.debtBalance;
+      finalBTCRetained = entry.btcHeld; // Remaining BTC amount, not dollar value
       
       // Calculate interest saved (simplified - would need more complex calculation)
       const remainingMonths = (30 * 12) - entry.month; // Assuming 30-year loan
@@ -299,8 +322,14 @@ export function generateAmortizationResults(
   // Generate comprehensive amortization schedule
   const monthlySchedule = generateComprehensiveAmortizationTable(inputs, maxMonths);
   
-  // Generate stacked chart data
-  const stackedChartData = generateStackedChartData(monthlySchedule, inputs.property);
+  // Generate extended schedule for 20-year chart (240 months minimum)
+  const chartMaxMonths = Math.max(240, maxMonths);
+  const extendedSchedule = monthlySchedule.length < 240 
+    ? generateComprehensiveAmortizationTable(inputs, chartMaxMonths)
+    : monthlySchedule;
+  
+  // Generate stacked chart data (always 20 years)
+  const stackedChartData = generateStackedChartData(extendedSchedule, inputs.property);
   
   // Analyze payoff trigger
   const payoffAnalysis = analyzePayoffTrigger(monthlySchedule);

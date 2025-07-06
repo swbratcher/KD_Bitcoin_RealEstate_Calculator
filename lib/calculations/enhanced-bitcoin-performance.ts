@@ -31,8 +31,6 @@ const SEASON_CONFIG = {
   spring: { months: 6, growthPortion: 0.35 }    // Recovery/preparation
 };
 
-const TARGET_FALL_FACTOR = 0.30; // 70% total drop over fall months
-
 /**
  * Calculate CAGR for a specific cycle with diminishing returns
  */
@@ -56,7 +54,10 @@ export function calculateCycleCAGR(
 /**
  * Calculate seasonal factors for a given cycle CAGR
  */
-function calculateSeasonalFactors(cycleCAGR: number): {
+function calculateSeasonalFactors(
+  cycleCAGR: number, 
+  maxDrawdownPercent: number
+): {
   summerFactorPerMonth: number;
   springFactorPerMonth: number;
   fallFactorPerMonth: number;
@@ -65,14 +66,17 @@ function calculateSeasonalFactors(cycleCAGR: number): {
   // Convert percentage to decimal
   const annualRate = cycleCAGR / 100;
   
+  // Calculate target fall factor from user's max drawdown setting
+  const targetFallFactor = (100 - maxDrawdownPercent) / 100; // e.g., 70% drawdown = 0.30
+  
   // Compute 4-year cycle return
   const cycleReturn4y = Math.pow(1 + annualRate, 4);
-  const netGainFactor = cycleReturn4y / TARGET_FALL_FACTOR;
+  const netGainFactor = cycleReturn4y / targetFallFactor;
   
   // Calculate per-month factors for each season
   const summerFactorPerMonth = Math.pow(netGainFactor, SEASON_CONFIG.summer.growthPortion / SEASON_CONFIG.summer.months);
   const springFactorPerMonth = Math.pow(netGainFactor, SEASON_CONFIG.spring.growthPortion / SEASON_CONFIG.spring.months);
-  const fallFactorPerMonth = Math.pow(TARGET_FALL_FACTOR, 1 / SEASON_CONFIG.fall.months);
+  const fallFactorPerMonth = Math.pow(targetFallFactor, 1 / SEASON_CONFIG.fall.months);
   const winterFactorPerMonth = 1.0; // No change in winter
   
   return {
@@ -92,28 +96,20 @@ function getMonthlyPerformanceFactor(
 ): number {
   const { summer, fall, winter, spring } = SEASON_CONFIG;
   
-  // Calculate annual growth factor (smooth baseline)
-  const annualGrowthFactor = Math.pow(seasonalFactors.summerFactorPerMonth, 12);
-  const baseMonthlyFactor = Math.pow(annualGrowthFactor, 1/12);
-  
-  // Add gentle seasonal variation (±10% max) instead of harsh transitions
-  let seasonalMultiplier = 1.0;
-  
+  // Use actual seasonal factors calculated with proper drawdowns
   if (cyclePosition < summer.months) {
-    // Summer (months 0-17): Slightly above average
-    seasonalMultiplier = 1.05;
+    // Summer (months 0-17): Bull market growth
+    return seasonalFactors.summerFactorPerMonth;
   } else if (cyclePosition < summer.months + fall.months) {
-    // Fall (months 18-29): Slightly below average
-    seasonalMultiplier = 0.98;
+    // Fall (months 18-29): Bear market decline (70% drawdown)
+    return seasonalFactors.fallFactorPerMonth;
   } else if (cyclePosition < summer.months + fall.months + winter.months) {
-    // Winter (months 30-35): Neutral
-    seasonalMultiplier = 1.0;
+    // Winter (months 30-35): Consolidation (no change)
+    return seasonalFactors.winterFactorPerMonth;
   } else {
-    // Spring (months 36-47): Moderate recovery
-    seasonalMultiplier = 1.02;
+    // Spring (months 36-47): Recovery/preparation
+    return seasonalFactors.springFactorPerMonth;
   }
-  
-  return baseMonthlyFactor * seasonalMultiplier;
 }
 
 /**
@@ -164,7 +160,7 @@ export function generateEnhancedBitcoinPerformanceTimeline(
     );
     
     // Calculate seasonal factors for this cycle
-    const seasonalFactors = calculateSeasonalFactors(cycleCAGR);
+    const seasonalFactors = calculateSeasonalFactors(cycleCAGR, performanceSettings.maxDrawdownPercent);
     
     // Get monthly performance factor (default to seasonal factors if undefined)
     const useSeasonalFactors = performanceSettings.useSeasonalFactors !== false;

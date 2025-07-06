@@ -48,7 +48,7 @@ describe('Basic Calculation Tests', () => {
         currentMortgage: { currentBalance: 100000, monthlyPayment: 1000, interestRate: 0.06, remainingYears: 15 },
         propertyIncome: { monthlyRentalIncome: 1200, monthlyTaxes: 200, monthlyInsurance: 100, monthlyHOA: 0, netMonthlyCashFlow: 900 },
         refinanceScenario: { type: 'cash-out-refinance' as const, cashOutAmount: 50000, newLoanAmount: 150000, newInterestRate: 0.065, newLoanTermYears: 30, newMonthlyPayment: 950, closingCosts: 3000, monthlyPaymentIncrease: -50 },
-        bitcoinInvestment: { investmentAmount: 50000, currentBitcoinPrice: 50000, targetScenarios: [], performanceSettings: { model: 'steady' as const, customAnnualGrowthRate: 0.20, useSeasonalFactors: false, maxDrawdownPercent: 70 } },
+        bitcoinInvestment: { investmentAmount: 50000, currentBitcoinPrice: 50000, targetScenarios: [], performanceSettings: { model: 'steady' as const, initialCAGR: 20, useSeasonalFactors: false, maxDrawdownPercent: 70 } },
         payoffTrigger: { type: 'percentage' as const, value: 200 }
       };
 
