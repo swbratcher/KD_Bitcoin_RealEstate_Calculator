@@ -334,6 +334,23 @@ export function calculatePerformanceSummary(
   finalBTCValue: number;
   totalROI: number;
   annualizedReturn: number;
+  // New metrics for enhanced reporting
+  componentBreakdown: {
+    propertyAppreciationGain: number;
+    bitcoinNetContribution: number;
+    interestSavings: number;
+    totalGain: number;
+  };
+  efficiencyMetrics: {
+    payoffEfficiencyPercent: number;
+    leverageRatio: number;
+    timeToPayoff: number;
+  };
+  baselineComparison: {
+    traditionalInvestmentValue: number;
+    traditionalInvestmentROI: number;
+    strategyOutperformance: number;
+  };
 } {
   const initialInvestment = inputs.bitcoinInvestment.investmentAmount;
   const initialPropertyValue = inputs.property.currentValue;
@@ -353,8 +370,12 @@ export function calculatePerformanceSummary(
     finalBTCValue = payoffAnalysis.finalBTCRetained * targetEntry.btcSpotPrice;
   } else {
     // No payoff - find appropriate end point
+    const loanTermMonths = inputs.refinanceScenario.type === 'cash-out-refinance' 
+      ? inputs.refinanceScenario.newLoanTermYears * 12 
+      : 30 * 12; // Default HELOC term
+    
     targetEntry = amortizationSchedule.find(entry => entry.debtBalance === 0) || 
-                 amortizationSchedule[Math.min(inputs.refinanceScenario.newLoanTermYears * 12 - 1, amortizationSchedule.length - 1)] ||
+                 amortizationSchedule[Math.min(loanTermMonths - 1, amortizationSchedule.length - 1)] ||
                  amortizationSchedule[amortizationSchedule.length - 1];
     
     finalBTCValue = targetEntry.btcValue;
@@ -372,12 +393,46 @@ export function calculatePerformanceSummary(
   const yearsElapsed = targetEntry.month / 12;
   const annualizedReturn = yearsElapsed > 0 ? Math.pow(1 + totalROI, 1 / yearsElapsed) - 1 : 0;
   
+  // Calculate component breakdown
+  const propertyAppreciationGain = finalPropertyValue - initialPropertyValue;
+  const bitcoinNetContribution = finalBTCValue - initialInvestment;
+  const interestSavings = payoffAnalysis.triggerMonth ? payoffAnalysis.interestSaved : 0;
+  const totalGain = propertyAppreciationGain + bitcoinNetContribution + interestSavings;
+  
+  // Calculate efficiency metrics
+  const payoffEfficiencyPercent = payoffAnalysis.triggerMonth ? 
+    (payoffAnalysis.debtAtTrigger / (payoffAnalysis.debtAtTrigger + payoffAnalysis.btcValueAtTrigger - payoffAnalysis.debtAtTrigger)) * 100 : 0;
+  const leverageRatio = totalReturn / initialInvestment;
+  const timeToPayoff = yearsElapsed;
+  
+  // Calculate baseline comparison (traditional 7% S&P 500 investment)
+  const traditionalRate = 0.07; // 7% annually
+  const traditionalInvestmentValue = initialInvestment * Math.pow(1 + traditionalRate, yearsElapsed);
+  const traditionalInvestmentROI = (traditionalInvestmentValue - initialInvestment) / initialInvestment;
+  const strategyOutperformance = finalBTCValue - traditionalInvestmentValue;
+  
   return {
     finalTotalAsset,
     finalPropertyValue,
     finalBTCValue,
     totalROI,
-    annualizedReturn
+    annualizedReturn,
+    componentBreakdown: {
+      propertyAppreciationGain,
+      bitcoinNetContribution,
+      interestSavings,
+      totalGain
+    },
+    efficiencyMetrics: {
+      payoffEfficiencyPercent,
+      leverageRatio,
+      timeToPayoff
+    },
+    baselineComparison: {
+      traditionalInvestmentValue,
+      traditionalInvestmentROI,
+      strategyOutperformance
+    }
   };
 }
 

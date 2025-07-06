@@ -223,79 +223,170 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
 
   return (
     <div className="space-y-6">
-      {/* Payoff Analysis */}
+      {/* Section 1: Scenario Outcome (What Happened) */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Payoff Analysis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Scenario Outcome</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Trigger Month</h4>
+            <h4 className="text-sm font-medium text-gray-600">Payoff Success</h4>
             <p className="text-2xl font-bold text-blue-600">
-              {payoffAnalysis.triggerMonth ? `Month ${payoffAnalysis.triggerMonth}` : 'Not Triggered'}
+              {payoffAnalysis.triggerMonth ? 
+                `${(payoffAnalysis.triggerMonth / 12).toFixed(1)} Years` : 
+                'Not Achieved'
+              }
             </p>
             <p className="text-sm text-gray-500">
-              {payoffAnalysis.triggerDate || 'N/A'}
+              {payoffAnalysis.triggerDate ? 
+                new Date(payoffAnalysis.triggerDate).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short' 
+                }).toUpperCase() : 
+                'N/A'
+              }
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">BTC Value at Trigger</h4>
+            <h4 className="text-sm font-medium text-gray-600">Zero Debt</h4>
             <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(payoffAnalysis.btcValueAtTrigger)}
+              {formatCurrency(performanceSummary.finalPropertyValue)}
             </p>
-          </div>
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Debt at Trigger</h4>
-            <p className="text-2xl font-bold text-red-600">
-              {formatCurrency(payoffAnalysis.debtAtTrigger)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Interest Saved</h4>
-            <p className="text-2xl font-bold text-purple-600">
-              {formatCurrency(payoffAnalysis.interestSaved)}
-            </p>
+            <p className="text-xs text-gray-500">Home Value</p>
           </div>
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">BTC Retained</h4>
-            <p className="text-2xl font-bold text-orange-600">
-              {payoffAnalysis.finalBTCRetained.toFixed(8)} BTC
+            <p className="text-xl font-bold text-orange-600">
+              {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
             </p>
+            <p className="text-lg font-semibold text-gray-900">
+              {formatCurrency(performanceSummary.finalBTCValue)}
+            </p>
+          </div>
+        </div>
+        
+        {/* Info Block */}
+        <div className="mt-4 bg-blue-100 border-l-4 border-blue-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Strategy Summary:</strong> Bitcoin investment successfully paid off mortgage in {payoffAnalysis.triggerMonth ? (payoffAnalysis.triggerMonth / 12).toFixed(1) : 'N/A'} years, 
+                eliminating debt while retaining {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC for future appreciation. 
+                Property now owned free and clear with continued income potential.
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Performance Summary */}
+      {/* Section 2: Financial Performance (Returns Analysis) */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary At Payoff</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Performance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Assets Value</h4>
-            <p className="text-2xl font-bold text-green-600">
+            <h4 className="text-sm font-medium text-gray-600">Total ROI</h4>
+            <p className="text-3xl font-bold text-green-600">
+              {formatPercent(performanceSummary.totalROI)}
+            </p>
+            <p className="text-sm text-gray-500">Over {performanceSummary.efficiencyMetrics?.timeToPayoff.toFixed(1) || (payoffAnalysis.triggerMonth ? (payoffAnalysis.triggerMonth / 12).toFixed(1) : 'N/A')} years</p>
+          </div>
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Annualized Return</h4>
+            <p className="text-3xl font-bold text-blue-600">
+              {formatPercent(performanceSummary.annualizedReturn)}
+            </p>
+            <p className="text-sm text-gray-500">Per year</p>
+          </div>
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Final Asset Value</h4>
+            <p className="text-2xl font-bold text-purple-600">
               {formatCurrency(performanceSummary.finalTotalAsset)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Property Value at Payoff</h4>
+            <h4 className="text-sm font-medium text-gray-600">vs S&P 500 (7%)</h4>
+            <p className={`text-2xl font-bold ${performanceSummary.baselineComparison?.strategyOutperformance && performanceSummary.baselineComparison.strategyOutperformance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {performanceSummary.baselineComparison ? 
+                (performanceSummary.baselineComparison.strategyOutperformance > 0 ? '+' : '') + 
+                formatCurrency(performanceSummary.baselineComparison.strategyOutperformance) : 
+                'N/A'
+              }
+            </p>
+            <p className="text-xs text-gray-500">Outperformance</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Gain Attribution (Component Breakdown) */}
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Where Gains Came From</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Property Appreciation</h4>
             <p className="text-2xl font-bold text-blue-600">
-              {formatCurrency(performanceSummary.finalPropertyValue)}
+              {performanceSummary.componentBreakdown ? 
+                formatCurrency(performanceSummary.componentBreakdown.propertyAppreciationGain) :
+                formatCurrency(performanceSummary.finalPropertyValue - 200000) // fallback calculation
+              }
             </p>
+            <p className="text-xs text-gray-500">Real estate growth</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">BTC Value at Payoff</h4>
+            <h4 className="text-sm font-medium text-gray-600">Bitcoin Net Gain</h4>
             <p className="text-2xl font-bold text-orange-600">
-              {formatCurrency(performanceSummary.finalBTCValue)}
+              {performanceSummary.componentBreakdown ? 
+                formatCurrency(performanceSummary.componentBreakdown.bitcoinNetContribution) :
+                formatCurrency(performanceSummary.finalBTCValue - 40000) // fallback calculation
+              }
+              <span className="text-sm font-normal text-gray-600 ml-2">
+                ({payoffAnalysis.finalBTCRetained.toFixed(4)} BTC)
+              </span>
             </p>
+            <p className="text-xs text-gray-500">After sales & payoff</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">ROI at Payoff</h4>
+            <h4 className="text-sm font-medium text-gray-600">Interest Savings</h4>
             <p className="text-2xl font-bold text-purple-600">
-              {formatPercent(performanceSummary.totalROI)}
+              {formatCurrency(payoffAnalysis.interestSaved)}
             </p>
+            <p className="text-xs text-gray-500">Early payoff benefit</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Decision Metrics (Risk & Efficiency) */}
+      <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Strategy Efficiency</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Debt Elimination via BTC</h4>
+            <p className="text-2xl font-bold text-green-600">
+              {payoffAnalysis.triggerMonth ? 
+                `${((payoffAnalysis.debtAtTrigger / payoffAnalysis.btcValueAtTrigger) * 100).toFixed(1)}%` : 
+                'N/A'
+              }
+            </p>
+            <p className="text-xs text-gray-500">Payoff efficiency</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Annual Return On Loan</h4>
+            <h4 className="text-sm font-medium text-gray-600">Leverage Efficiency</h4>
             <p className="text-2xl font-bold text-indigo-600">
-              {formatPercent(performanceSummary.annualizedReturn)}
+              {performanceSummary.efficiencyMetrics ? 
+                `${performanceSummary.efficiencyMetrics.leverageRatio.toFixed(1)}x` :
+                `${((performanceSummary.finalTotalAsset - 240000) / 40000).toFixed(1)}x` // fallback
+              }
             </p>
+            <p className="text-xs text-gray-500">Return per $ invested</p>
+          </div>
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Future Growth Potential</h4>
+            <p className="text-2xl font-bold text-orange-600">
+              {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
+            </p>
+            <p className="text-xs text-gray-500">Retained for appreciation</p>
           </div>
         </div>
       </div>

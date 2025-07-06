@@ -244,6 +244,25 @@ export interface AmortizationResults {
     totalROI: number;
     /** Annualized return */
     annualizedReturn: number;
+    /** Component breakdown of gains (optional - new) */
+    componentBreakdown?: {
+      propertyAppreciationGain: number;
+      bitcoinNetContribution: number;
+      interestSavings: number;
+      totalGain: number;
+    };
+    /** Efficiency metrics (optional - new) */
+    efficiencyMetrics?: {
+      payoffEfficiencyPercent: number;
+      leverageRatio: number;
+      timeToPayoff: number;
+    };
+    /** Baseline comparison (optional - new) */
+    baselineComparison?: {
+      traditionalInvestmentValue: number;
+      traditionalInvestmentROI: number;
+      strategyOutperformance: number;
+    };
   };
 }
 
