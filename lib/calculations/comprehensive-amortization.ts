@@ -69,6 +69,7 @@ export function generateComprehensiveAmortizationTable(
   
   let cumulativeBTCSold = 0;
   let remainingBTC = initialBTCHeld;
+  let loanPaidOff = false; // Track if loan has been paid off
   
   const comprehensiveSchedule: MonthlyAmortizationEntry[] = [];
   
@@ -85,13 +86,13 @@ export function generateComprehensiveAmortizationTable(
     );
     
     const btcSpotPrice = btcValueData.currentSpotPrice;
-    const btcValue = remainingBTC * btcSpotPrice;
+    let btcValue = remainingBTC * btcSpotPrice;
     
     // Update the performance entry with calculated spot price
     bitcoinPerformance[i].spotPrice = btcSpotPrice;
     
     // Determine if we're in loan period or post-payoff period
-    const isLoanActive = baseEntry && baseEntry.debtBalance > 0;
+    const isLoanActive = !loanPaidOff && baseEntry && baseEntry.debtBalance > 0;
     
     // Calculate cash flow shortfall (only during loan period)
     let monthlyCashFlowShortfall = 0;
@@ -115,6 +116,9 @@ export function generateComprehensiveAmortizationTable(
       // Update BTC holdings
       remainingBTC = btcSales.remainingBTC;
       cumulativeBTCSold += btcSales.btcToSell;
+      
+      // Recalculate BTC value AFTER sales for accurate trigger checking
+      btcValue = remainingBTC * btcSpotPrice;
     }
     // Post-loan period: no more BTC sales, BTC continues to grow
     
@@ -126,7 +130,7 @@ export function generateComprehensiveAmortizationTable(
     );
     
     // Calculate values based on loan status
-    const debtBalance = isLoanActive ? baseEntry.debtBalance : 0;
+    const debtBalance = loanPaidOff ? 0 : (isLoanActive ? baseEntry.debtBalance : 0);
     const baseEquity = property.currentValue - debtBalance;
     const propertyValue = property.currentValue + propertyAppreciation;
     const totalAsset = propertyValue + btcValue;
@@ -136,6 +140,15 @@ export function generateComprehensiveAmortizationTable(
     const canPayOff = isLoanActive ? btcValue >= debtBalance : true;
     const payoffAmount = debtBalance; // Amount needed for full payoff
     const surplus = canPayOff ? btcValue - debtBalance : btcValue;
+    
+    // Execute payoff when trigger is met
+    if (payoffTriggerMet && canPayOff && !loanPaidOff) {
+      // Execute the payoff: sell BTC to pay off remaining debt
+      const btcToSellForPayoff = debtBalance / btcSpotPrice;
+      remainingBTC = remainingBTC - btcToSellForPayoff;
+      btcValue = remainingBTC * btcSpotPrice; // Update BTC value after payoff
+      loanPaidOff = true; // Mark loan as paid off for all future months
+    }
     
     // Calculate date for this month
     const currentDate = new Date(loanStartDate);
@@ -151,8 +164,8 @@ export function generateComprehensiveAmortizationTable(
       debtBalance,
       baseEquity,
       propertyAppreciation,
-      monthlyPayment: isLoanActive ? baseEntry.monthlyPayment : 0,
-      netCashFlow: isLoanActive ? baseEntry.netCashFlow : propertyIncome.monthlyRentalIncome - (propertyIncome.monthlyTaxes + propertyIncome.monthlyInsurance + propertyIncome.monthlyHOA),
+      monthlyPayment: debtBalance > 0 ? (baseEntry?.monthlyPayment || 0) : 0,
+      netCashFlow: debtBalance > 0 ? (baseEntry?.netCashFlow || 0) : propertyIncome.monthlyRentalIncome - (propertyIncome.monthlyTaxes + propertyIncome.monthlyInsurance + propertyIncome.monthlyHOA),
       // Bitcoin data
       btcHeld: remainingBTC,
       btcValue,
@@ -302,7 +315,7 @@ export function analyzePayoffTrigger(
 }
 
 /**
- * Calculate performance summary metrics
+ * Calculate performance summary metrics at payoff trigger point
  */
 export function calculatePerformanceSummary(
   amortizationSchedule: MonthlyAmortizationEntry[],
@@ -314,19 +327,51 @@ export function calculatePerformanceSummary(
   totalROI: number;
   annualizedReturn: number;
 } {
-  const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
   const initialInvestment = inputs.bitcoinInvestment.investmentAmount;
   const initialPropertyValue = inputs.property.currentValue;
   
-  const finalTotalAsset = lastEntry.totalAsset;
-  const finalPropertyValue = initialPropertyValue + lastEntry.propertyAppreciation;
-  const finalBTCValue = lastEntry.btcValue;
+  // Find the appropriate stopping point for performance summary
+  let targetEntry = amortizationSchedule[amortizationSchedule.length - 1]; // Default fallback
+  
+  // Priority 1: Look for payoff trigger being met AND able to pay off
+  for (const entry of amortizationSchedule) {
+    if (entry.payoffTriggerMet && entry.canPayOff) {
+      targetEntry = entry;
+      break;
+    }
+  }
+  
+  // Priority 2: If no trigger met, find when loan naturally ends (debt = 0)
+  if (!targetEntry.payoffTriggerMet || !targetEntry.canPayOff) {
+    for (const entry of amortizationSchedule) {
+      if (entry.debtBalance === 0) {
+        targetEntry = entry;
+        break;
+      }
+    }
+  }
+  
+  // Priority 3: If loan still has debt, use original loan term end (avoid 20-year projections)
+  if (targetEntry.debtBalance > 0) {
+    // Calculate original loan term length
+    const originalLoanTermMonths = inputs.refinanceScenario.type === 'cash-out-refinance' 
+      ? inputs.refinanceScenario.newLoanTermYears * 12 
+      : 30 * 12; // Default HELOC term
+    
+    // Use the entry at original loan term end, or last entry if shorter
+    const termEndIndex = Math.min(originalLoanTermMonths - 1, amortizationSchedule.length - 1);
+    targetEntry = amortizationSchedule[termEndIndex];
+  }
+  
+  const finalTotalAsset = targetEntry.totalAsset;
+  const finalPropertyValue = initialPropertyValue + targetEntry.propertyAppreciation;
+  const finalBTCValue = targetEntry.btcValue;
   
   const totalReturn = finalTotalAsset - (initialPropertyValue + initialInvestment);
   const totalROI = totalReturn / (initialPropertyValue + initialInvestment);
   
-  const yearsElapsed = lastEntry.month / 12;
-  const annualizedReturn = Math.pow(1 + totalROI, 1 / yearsElapsed) - 1;
+  const yearsElapsed = targetEntry.month / 12;
+  const annualizedReturn = yearsElapsed > 0 ? Math.pow(1 + totalROI, 1 / yearsElapsed) - 1 : 0;
   
   return {
     finalTotalAsset,

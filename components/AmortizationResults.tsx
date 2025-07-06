@@ -265,22 +265,22 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
 
       {/* Performance Summary */}
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary At Payoff</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Final Total Asset</h4>
+            <h4 className="text-sm font-medium text-gray-600">Total Asset at Payoff</h4>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(performanceSummary.finalTotalAsset)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Final Property Value</h4>
+            <h4 className="text-sm font-medium text-gray-600">Property Value at Payoff</h4>
             <p className="text-2xl font-bold text-blue-600">
               {formatCurrency(performanceSummary.finalPropertyValue)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Final BTC Value</h4>
+            <h4 className="text-sm font-medium text-gray-600">BTC Value at Payoff</h4>
             <p className="text-2xl font-bold text-orange-600">
               {formatCurrency(performanceSummary.finalBTCValue)}
             </p>

@@ -91,7 +91,7 @@ export default function CalculatorForm({
   // NEW: Bitcoin performance settings
   const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
   const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('70'); // Default 70% drawdown
-  const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('realist'); // bearish, realist, bullish, 3xmaxi, custom
+  const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('bullish'); // bearish, realist, bullish, 3xmaxi, custom
   const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('25');
   
   // NEW: Enhanced Bitcoin algorithm settings
