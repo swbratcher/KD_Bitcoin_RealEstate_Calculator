@@ -558,19 +558,6 @@ export default function CalculatorForm({
             </div>
 
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Available Equity
-              </label>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-lg font-semibold text-blue-900">
-                  ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
-                </div>
-                <div className="text-sm text-blue-700 mt-1">
-                  Max Cash-Out (80% LTV): ${formatDollar(maxCashOut)}
-                </div>
-              </div>
-            </div>
           </div>
 
 
@@ -726,6 +713,20 @@ export default function CalculatorForm({
 
         </div>
 
+        {/* Available Equity Summary */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Available Equity</h3>
+          
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="text-xl font-semibold text-blue-900">
+              ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
+            </div>
+            <div className="text-sm text-blue-700 mt-1">
+              Max Cash-Out (80% LTV): ${formatDollar(maxCashOut)}
+            </div>
+          </div>
+        </div>
+
         {/* Loan Type Toggle */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Loan Type</h3>
@@ -858,11 +859,6 @@ export default function CalculatorForm({
             </div>
           )}
 
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Maximum:</strong> ${formatDollar(maxCashOut)} (80% LTV limit)
-            </p>
-          </div>
         </div>
 
         {/* Loan Terms */}
