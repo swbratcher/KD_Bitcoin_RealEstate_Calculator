@@ -64,23 +64,8 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Results Panel - Billboard Area */}
-          <div className="w-full space-y-4">
-            {/* Quick Summary (when results available) */}
-            {amortizationResults && !calculating && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 className="text-green-800 font-semibold">✅ Calculation Complete!</h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p><strong>Total months calculated:</strong> {amortizationResults.monthlySchedule.length}</p>
-                  {amortizationResults.payoffAnalysis.triggerMonth && (
-                    <p><strong>Payoff trigger month:</strong> {amortizationResults.payoffAnalysis.triggerMonth}</p>
-                  )}
-                  <p><strong>Total ROI:</strong> {((amortizationResults.performanceSummary.totalROI || 0) * 100).toFixed(1)}%</p>
-                </div>
-              </div>
-            )}
-            
-            {/* Comprehensive Amortization Results */}
+          {/* Results Panel - Clean presentation without redundant summaries */}
+          <div className="w-full">
             <AmortizationResults 
               results={amortizationResults}
               loading={calculating}

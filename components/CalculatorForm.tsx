@@ -658,38 +658,40 @@ export default function CalculatorForm({
             </div>
           </div>
 
-          {/* Payment breakdown calculation */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Calculated Payment Breakdown</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">P&I Amount:</span>
-                <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxesInsurance) || 0))}</span>
+          {/* Side-by-side layout: Max Cash-Out (left) and Payment Breakdown (right) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Max Cash-Out block (left on desktop, bottom on mobile) */}
+            <div className="bg-blue-50 p-4 rounded-lg order-2 md:order-1">
+              <div className="text-xl font-semibold text-blue-900">
+                ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
               </div>
-              <div>
-                <span className="text-gray-600">T&I Amount:</span>
-                <span className="font-semibold ml-2">${formatDollar(parseFloat(monthlyTaxesInsurance) || 0)}</span>
+              <div className="text-sm text-blue-700 mt-1">
+                Max Cash-Out (80% LTV): ${formatDollar(maxCashOut)}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              These values will be used for mortgage calculations
-            </p>
-          </div>
 
+            {/* Payment breakdown calculation (right on desktop, top on mobile) */}
+            <div className="bg-gray-50 p-4 rounded-lg order-1 md:order-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Calculated Payment Breakdown</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">P&I Amount:</span>
+                  <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxesInsurance) || 0))}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">T&I Amount:</span>
+                  <span className="font-semibold ml-2">${formatDollar(parseFloat(monthlyTaxesInsurance) || 0)}</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                These values will be used for mortgage calculations
+              </p>
+            </div>
+          </div>
 
         </div>
 
-        {/* Available Equity Summary */}
-        <div className="space-y-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-xl font-semibold text-blue-900">
-              ${formatDollar(availableEquity)} ({((availableEquity / (parseFloat(propertyValue) || 1)) * 100).toFixed(0)}%)
-            </div>
-            <div className="text-sm text-blue-700 mt-1">
-              Max Cash-Out (80% LTV): ${formatDollar(maxCashOut)}
-            </div>
-          </div>
-        </div>
+        {/* Available Equity Summary - moved above */}
 
         {/* Loan Type Toggle */}
         <div className="space-y-4">
@@ -1328,27 +1330,18 @@ export default function CalculatorForm({
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-4 border-t">
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {loading ? 'Calculating...' : 'Calculate Payoff Scenarios'}
-          </button>
-          
-          {errors.length > 0 && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 font-medium">Please fix the following errors:</p>
-              <ul className="mt-1 text-sm text-red-600 list-disc list-inside">
-                {errors.map((error, index) => (
-                  <li key={index}>{error.message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+        {/* Auto-submit on input change - no manual button needed */}
+        
+        {errors.length > 0 && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600 font-medium">Please fix the following errors:</p>
+            <ul className="mt-1 text-sm text-red-600 list-disc list-inside">
+              {errors.map((error, index) => (
+                <li key={index}>{error.message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </form>
     </div>
   );
