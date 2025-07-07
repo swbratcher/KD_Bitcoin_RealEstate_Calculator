@@ -316,6 +316,14 @@ export function analyzePayoffTrigger(
     }
   }
   
+  // If no payoff trigger was met (HODL Only mode), get final BTC amount from end of loan term
+  if (!triggerMonth && amortizationSchedule.length > 0) {
+    // Find the last entry where debt > 0 or just use the last entry
+    const lastEntryWithDebt = amortizationSchedule.filter(entry => entry.debtBalance > 0).pop();
+    const finalEntry = lastEntryWithDebt || amortizationSchedule[amortizationSchedule.length - 1];
+    finalBTCRetained = finalEntry.btcHeld; // BTC amount remaining at end of loan term
+  }
+  
   return {
     triggerMonth,
     triggerDate,
@@ -373,16 +381,20 @@ export function calculatePerformanceSummary(
     // This avoids any issues with continued BTC growth after payoff
     finalBTCValue = payoffAnalysis.finalBTCRetained * targetEntry.btcSpotPrice;
   } else {
-    // No payoff - find appropriate end point
+    // No payoff - find appropriate end point (HODL Only mode)
     const loanTermMonths = inputs.refinanceScenario.type === 'cash-out-refinance' 
       ? inputs.refinanceScenario.newLoanTermYears * 12 
       : 30 * 12; // Default HELOC term
     
-    targetEntry = amortizationSchedule.find(entry => entry.debtBalance === 0) || 
+    // Find the last entry where debt > 0 (end of loan term) 
+    const lastEntryWithDebt = amortizationSchedule.filter(entry => entry.debtBalance > 0).pop();
+    targetEntry = lastEntryWithDebt || 
                  amortizationSchedule[Math.min(loanTermMonths - 1, amortizationSchedule.length - 1)] ||
                  amortizationSchedule[amortizationSchedule.length - 1];
     
-    finalBTCValue = targetEntry.btcValue;
+    // For HODL mode: use actual BTC amount * spot price at end of loan term
+    // This avoids the inflated btcValue that continues growing beyond loan term
+    finalBTCValue = payoffAnalysis.finalBTCRetained * targetEntry.btcSpotPrice;
   }
   
   // Calculate property value at the target month
