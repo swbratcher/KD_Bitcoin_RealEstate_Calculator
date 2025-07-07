@@ -21,7 +21,7 @@ import {
   BitcoinPriceData,
   ValidationError 
 } from '@/lib/types';
-import { validateAmortizationInputs } from '@/lib/calculations';
+import { validateAmortizationInputs, generateAmortizationResults } from '@/lib/calculations';
 import AmortizationChart from './AmortizationChart';
 
 interface CalculatorFormProps {
@@ -428,6 +428,96 @@ export default function CalculatorForm({
       case 'custom': return parseFloat(customAnnualGrowthRate) || 25;
       default: return 20;
     }
+  };
+
+  // Analyze Bitcoin sustainability from actual amortization table data
+  const analyzeBitcoinSustainability = () => {
+    // If we have real chart data, analyze it. Otherwise fall back to simple logic
+    if (realChartData && realChartData.length > 0) {
+      // Use the actual amortization table data that's already calculated
+      const formData = buildCalculatorInputs();
+      
+      if (!formData) {
+        return getSimpleBTCAnalysis();
+      }
+      
+      try {
+        const results = generateAmortizationResults(formData);
+        const schedule = results.monthlySchedule;
+        
+        // Find if Bitcoin ever hits zero
+        const btcDepletionEntry = schedule.find(entry => entry.btcHeld <= 0);
+        
+        if (btcDepletionEntry) {
+          const depletionMonth = btcDepletionEntry.month;
+          const years = Math.floor(depletionMonth / 12);
+          const months = depletionMonth % 12;
+          const riskLevel = depletionMonth < schedule.length * 0.5 ? 'high' : depletionMonth < schedule.length * 0.8 ? 'medium' : 'low';
+          
+          return {
+            sustainable: false,
+            riskLevel,
+            message: `Bitcoin depleted in ${years} years, ${months} months`,
+            estimatedBTCRemaining: 0,
+            months: depletionMonth
+          };
+        } else {
+          // Made it through without depletion
+          const finalEntry = schedule[schedule.length - 1];
+          const finalBTC = finalEntry?.btcHeld || 0;
+          const riskLevel = finalBTC > 0.5 ? 'low' : finalBTC > 0.2 ? 'medium' : 'high';
+          
+          return {
+            sustainable: true,
+            riskLevel,
+            message: 'Sustainable through full term',
+            estimatedBTCRemaining: finalBTC,
+            months: schedule.length
+          };
+        }
+      } catch (error) {
+        // Fall back to simple analysis if calculation fails
+        return getSimpleBTCAnalysis();
+      }
+    } else {
+      return getSimpleBTCAnalysis();
+    }
+  };
+
+  // Simple fallback analysis when no real data available
+  const getSimpleBTCAnalysis = () => {
+    if (monthlyShortfall <= 0) {
+      return {
+        sustainable: true,
+        riskLevel: 'low',
+        message: 'Cash flow positive - no Bitcoin sales needed',
+        estimatedBTCRemaining: (parseFloat(cashOutAmount) || 40000) / currentBitcoinPrice,
+        months: (parseFloat(newLoanTermYears) || 30) * 12
+      };
+    }
+    
+    // Basic check: if monthly shortfall is very high relative to investment
+    const cashOut = parseFloat(cashOutAmount) || 40000;
+    const initialBTC = cashOut / currentBitcoinPrice;
+    const shortfallPercentage = (monthlyShortfall * 12) / cashOut;
+    
+    if (shortfallPercentage > 0.5) {
+      return {
+        sustainable: false,
+        riskLevel: 'high',
+        message: 'High monthly shortfall relative to Bitcoin investment',
+        estimatedBTCRemaining: 0,
+        months: 0
+      };
+    }
+    
+    return {
+      sustainable: true,
+      riskLevel: shortfallPercentage > 0.2 ? 'medium' : 'low',
+      message: 'Run calculation to get detailed analysis',
+      estimatedBTCRemaining: initialBTC,
+      months: (parseFloat(newLoanTermYears) || 30) * 12
+    };
   };
 
   // Generate monthly chart data with realistic amortization
@@ -1070,27 +1160,46 @@ export default function CalculatorForm({
               </div>
             </div>
 
-            {/* BTC Status Indicator */}
+            {/* BTC Sustainability Analysis */}
             <div className="mt-4 p-3 bg-white rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">BTC Crashout Likelihood:</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
-                    ? 'bg-green-100 text-green-800' 
-                    : getSentimentPercentage() >= 0 
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
+                  (() => {
+                    const analysis = analyzeBitcoinSustainability();
+                    switch (analysis.riskLevel) {
+                      case 'low': return 'bg-green-100 text-green-800';
+                      case 'medium': return 'bg-yellow-100 text-yellow-800';
+                      case 'high': return 'bg-red-100 text-red-800';
+                      default: return 'bg-gray-100 text-gray-800';
+                    }
+                  })()
                 }`}>
-                  {getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
-                    ? 'You never run out of Bitcoin at this shortfall.' 
-                    : getSentimentPercentage() >= 0 
-                    ? 'CAUTION'
-                    : 'RISK'
-                  }
+                  {(() => {
+                    const analysis = analyzeBitcoinSustainability();
+                    if (analysis.sustainable) {
+                      return analysis.riskLevel === 'low' 
+                        ? 'VERY LOW RISK' 
+                        : analysis.riskLevel === 'medium' 
+                        ? 'MODERATE RISK' 
+                        : 'MANAGEABLE';
+                    } else {
+                      return 'HIGH RISK';
+                    }
+                  })()}
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Based on performance sentiment and monthly cash flow requirements
+                {(() => {
+                  const analysis = analyzeBitcoinSustainability();
+                  if (analysis.sustainable) {
+                    const remainingBTC = analysis.estimatedBTCRemaining.toFixed(6);
+                    const years = Math.floor(analysis.months / 12);
+                    return `Sustainable through ${years}-year term with ~${remainingBTC} BTC remaining`;
+                  } else {
+                    return analysis.message + ' - consider reducing monthly shortfall or increasing Bitcoin investment';
+                  }
+                })()}
               </p>
             </div>
 
