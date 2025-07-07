@@ -88,15 +88,15 @@ export default function CalculatorForm({
   
   // NEW: Bitcoin performance settings
   const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
-  const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('70'); // Default 70% drawdown
+  const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('60'); // Default to match Bullish config
   const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('bullish'); // bearish, realist, bullish, 3xmaxi, custom
-  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('40');
+  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('60');
   
   // NEW: Enhanced Bitcoin algorithm settings
-  const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(false);
-  const [finalCAGR, setFinalCAGR] = useState<string>('10'); // Final CAGR for diminishing returns
-  const [enableFlatteningCycles, setEnableFlatteningCycles] = useState<boolean>(false);
-  const [flatteningCyclePercent, setFlatteningCyclePercent] = useState<string>('30'); // Flattening cycle percentage
+  const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(true);
+  const [finalCAGR, setFinalCAGR] = useState<string>('15'); // Final CAGR for diminishing returns
+  const [enableFlatteningCycles, setEnableFlatteningCycles] = useState<boolean>(true);
+  const [flatteningCyclePercent, setFlatteningCyclePercent] = useState<string>('25'); // Flattening cycle percentage
   
   // NEW: Property appreciation setting
   const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
@@ -409,9 +409,9 @@ export default function CalculatorForm({
     return Math.round(amount).toLocaleString();
   };
 
-  // Helper function to get combined T&I amount
+  // Helper function to get combined monthly expenses (T&I + HOA)
   const getTaxesInsurance = (): number => {
-    return parseFloat(monthlyTaxesInsurance) || 0;
+    return (parseFloat(monthlyTaxesInsurance) || 0) + (parseFloat(monthlyHOA) || 0);
   };
 
   // Helper function to get sentiment percentage
@@ -538,6 +538,7 @@ export default function CalculatorForm({
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Property Information</h3>
           
+          {/* First row: Property Value, Mortgage Balance, Monthly Payment */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -559,16 +560,6 @@ export default function CalculatorForm({
               )}
             </div>
 
-
-          </div>
-
-
-        </div>
-
-        {/* Current Mortgage */}
-        <div className="space-y-4">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mortgage Balance *
@@ -616,14 +607,10 @@ export default function CalculatorForm({
                 <p className="mt-1 text-sm text-red-600">{getError('monthlyPayment')}</p>
               )}
             </div>
-
           </div>
-        </div>
-
-        {/* Property Income & Expenses */}
-        <div className="space-y-4">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Second row: Taxes & Insurance, Monthly HOA, Property Appreciation */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Monthly Taxes & Insurance
@@ -658,6 +645,26 @@ export default function CalculatorForm({
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Property Appreciation Rate
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={propertyAppreciationRate}
+                  onChange={(e) => setPropertyAppreciationRate(e.target.value)}
+                  className="input-field pr-8"
+                  placeholder="3.0"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Annual property appreciation rate
+              </p>
+            </div>
           </div>
 
           {/* Side-by-side layout: Max Cash-Out (left) and Payment Breakdown (right) */}
@@ -679,11 +686,11 @@ export default function CalculatorForm({
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">P&I Amount:</span>
-                  <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - (parseFloat(monthlyTaxesInsurance) || 0))}</span>
+                  <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyPayment) || 0) - getTaxesInsurance())}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">T&I Amount:</span>
-                  <span className="font-semibold ml-2">${formatDollar(parseFloat(monthlyTaxesInsurance) || 0)}</span>
+                  <span className="text-gray-600">Monthly Exp:</span>
+                  <span className="font-semibold ml-2">${formatDollar((parseFloat(monthlyTaxesInsurance) || 0) + (parseFloat(monthlyHOA) || 0))}</span>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
@@ -963,10 +970,122 @@ export default function CalculatorForm({
           </div>
         </div>
 
-        {/* Bitcoin Performance */}
+        {/* Bitcoin Position */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Bitcoin Position</h3>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
+            {/* Enhanced Algorithm Status */}
+            <div className="mb-4 p-3 bg-white rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Enhanced Algorithm Status:</span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
+                  ✓ ACTIVE
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
+                <div>Model: <span className="font-semibold">{bitcoinPerformanceModel === 'cycles' ? 'Seasonal' : 'Steady'}</span></div>
+                <div>Diminishing Returns: <span className="font-semibold">{enableDiminishingReturns ? 'ON' : 'OFF'}</span></div>
+                <div>Loan Start: <span className="font-semibold">Current Month</span></div>
+                <div>Max Drawdown: <span className="font-semibold">{bitcoinDrawdownPercent}%</span></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Target %</span>
+                <div className="text-lg font-bold text-blue-600">
+                  {payoffTriggerType === 'percentage' ? payoffTriggerValue : '200'}%
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Buy Price</span>
+                <div className="text-lg font-bold text-green-600">
+                  ${formatDollar(currentBitcoinPrice)}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">BTC Bought</span>
+                <div className="text-lg font-bold text-orange-600">
+                  {((parseFloat(cashOutAmount) || 0) / currentBitcoinPrice).toFixed(6)} BTC
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Investment</span>
+                <div className="text-lg font-bold text-purple-600">
+                  ${formatDollar(parseFloat(cashOutAmount) || 0)}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Performance</span>
+                <div className="text-lg font-bold text-indigo-600">
+                  {getSentimentPercentage() > 0 ? '+' : ''}{getSentimentPercentage()}%
+                  {enableDiminishingReturns && (
+                    <span className="text-sm"> → {parseFloat(finalCAGR) || 10}%</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {bitcoinPerformanceSentiment}
+                  {enableDiminishingReturns && <span> (diminishing)</span>}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Model Type</span>
+                <div className="text-lg font-bold text-teal-600">
+                  {bitcoinPerformanceModel === 'cycles' ? 'Cycles' : 'Flat'}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Property Growth</span>
+                <div className="text-lg font-bold text-emerald-600">
+                  {propertyAppreciationRate}%
+                </div>
+                <div className="text-xs text-gray-500">Annual</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <span className="text-xs text-gray-600 font-medium">Monthly Shortfall</span>
+                <div className={`text-lg font-bold ${monthlyShortfall > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  ${formatDollar(monthlyShortfall)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {monthlyShortfall > 0 ? 'BTC to sell' : 'Cash positive'}
+                </div>
+              </div>
+            </div>
+
+            {/* BTC Status Indicator */}
+            <div className="mt-4 p-3 bg-white rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">BTC Crashout Status:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
+                    ? 'bg-green-100 text-green-800' 
+                    : getSentimentPercentage() >= 0 
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
+                    ? 'You never run out of Bitcoin at this shortfall.' 
+                    : getSentimentPercentage() >= 0 
+                    ? 'CAUTION'
+                    : 'RISK'
+                  }
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Based on performance sentiment and monthly cash flow requirements
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bitcoin Price Modeling */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Bitcoin Price Modeling</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Current Price:</span>
               <span className={`text-sm font-semibold ${bitcoinLoading ? 'text-gray-400' : 'text-green-600'}`}>
@@ -996,7 +1115,12 @@ export default function CalculatorForm({
                   type="button"
                   onClick={() => {
                     setBitcoinPerformanceSentiment('bullish');
-                    setCustomAnnualGrowthRate('40');
+                    setCustomAnnualGrowthRate('60');
+                    setEnableDiminishingReturns(true);
+                    setFinalCAGR('15');
+                    setEnableFlatteningCycles(true);
+                    setBitcoinDrawdownPercent('60');
+                    setFlatteningCyclePercent('25');
                   }}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     bitcoinPerformanceSentiment === 'bullish' 
@@ -1011,6 +1135,11 @@ export default function CalculatorForm({
                   onClick={() => {
                     setBitcoinPerformanceSentiment('realist');
                     setCustomAnnualGrowthRate('20');
+                    setEnableDiminishingReturns(true);
+                    setFinalCAGR('15');
+                    setEnableFlatteningCycles(true);
+                    setBitcoinDrawdownPercent('70');
+                    setFlatteningCyclePercent('45');
                   }}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     bitcoinPerformanceSentiment === 'realist' 
@@ -1025,6 +1154,11 @@ export default function CalculatorForm({
                   onClick={() => {
                     setBitcoinPerformanceSentiment('3xmaxi');
                     setCustomAnnualGrowthRate('60');
+                    setEnableDiminishingReturns(true);
+                    setFinalCAGR('20');
+                    setEnableFlatteningCycles(true);
+                    setBitcoinDrawdownPercent('60');
+                    setFlatteningCyclePercent('40');
                   }}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     bitcoinPerformanceSentiment === '3xmaxi' 
@@ -1038,7 +1172,12 @@ export default function CalculatorForm({
                   type="button"
                   onClick={() => {
                     setBitcoinPerformanceSentiment('bearish');
-                    setCustomAnnualGrowthRate('-20');
+                    setCustomAnnualGrowthRate('10');
+                    setEnableDiminishingReturns(true);
+                    setFinalCAGR('-10');
+                    setEnableFlatteningCycles(true);
+                    setBitcoinDrawdownPercent('80');
+                    setFlatteningCyclePercent('60');
                   }}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     bitcoinPerformanceSentiment === 'bearish' 
@@ -1267,117 +1406,6 @@ export default function CalculatorForm({
           </div>
         </div>
 
-        {/* Bitcoin Performance Report */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Bitcoin Performance Report</h3>
-          
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
-            {/* Enhanced Algorithm Status */}
-            <div className="mb-4 p-3 bg-white rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Enhanced Algorithm Status:</span>
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
-                  ✓ ACTIVE
-                </span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
-                <div>Model: <span className="font-semibold">{bitcoinPerformanceModel === 'cycles' ? 'Seasonal' : 'Steady'}</span></div>
-                <div>Diminishing Returns: <span className="font-semibold">{enableDiminishingReturns ? 'ON' : 'OFF'}</span></div>
-                <div>Loan Start: <span className="font-semibold">Current Month</span></div>
-                <div>Max Drawdown: <span className="font-semibold">{bitcoinDrawdownPercent}%</span></div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">BTC Target %</span>
-                <div className="text-lg font-bold text-blue-600">
-                  {payoffTriggerType === 'percentage' ? payoffTriggerValue : '200'}%
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">BTC Buy Price</span>
-                <div className="text-lg font-bold text-green-600">
-                  ${formatDollar(currentBitcoinPrice)}
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">BTC Bought</span>
-                <div className="text-lg font-bold text-orange-600">
-                  {((parseFloat(cashOutAmount) || 0) / currentBitcoinPrice).toFixed(6)} BTC
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">Investment</span>
-                <div className="text-lg font-bold text-purple-600">
-                  ${formatDollar(parseFloat(cashOutAmount) || 0)}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">Performance</span>
-                <div className="text-lg font-bold text-indigo-600">
-                  {getSentimentPercentage() > 0 ? '+' : ''}{getSentimentPercentage()}%
-                  {enableDiminishingReturns && (
-                    <span className="text-sm"> → {parseFloat(finalCAGR) || 10}%</span>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {bitcoinPerformanceSentiment}
-                  {enableDiminishingReturns && <span> (diminishing)</span>}
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">Model Type</span>
-                <div className="text-lg font-bold text-teal-600">
-                  {bitcoinPerformanceModel === 'cycles' ? 'Cycles' : 'Flat'}
-                </div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">Property Growth</span>
-                <div className="text-lg font-bold text-emerald-600">
-                  {propertyAppreciationRate}%
-                </div>
-                <div className="text-xs text-gray-500">Annual</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">Monthly Shortfall</span>
-                <div className={`text-lg font-bold ${monthlyShortfall > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  ${formatDollar(monthlyShortfall)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {monthlyShortfall > 0 ? 'BTC to sell' : 'Cash positive'}
-                </div>
-              </div>
-            </div>
-
-            {/* BTC Status Indicator */}
-            <div className="mt-4 p-3 bg-white rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">BTC Crashout Status:</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
-                    ? 'bg-green-100 text-green-800' 
-                    : getSentimentPercentage() >= 0 
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
-                    ? 'You never run out of Bitcoin at this shortfall.' 
-                    : getSentimentPercentage() >= 0 
-                    ? 'CAUTION'
-                    : 'RISK'
-                  }
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Based on performance sentiment and monthly cash flow requirements
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Amortization Timeline Visualization */}
         <div className="space-y-4">
