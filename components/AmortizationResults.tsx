@@ -370,46 +370,49 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         </div>
       </div>
 
-      {/* Section 4: Decision Metrics (Risk & Efficiency) */}
-      <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Strategy Efficiency</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Debt Elimination via BTC</h4>
-            <p className="text-2xl font-bold text-green-600">
-              {payoffAnalysis.triggerMonth ? 
-                `${((payoffAnalysis.debtAtTrigger / payoffAnalysis.btcValueAtTrigger) * 100).toFixed(1)}%` : 
-                'N/A'
-              }
-            </p>
-            <p className="text-xs text-gray-500">Payoff efficiency</p>
-          </div>
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Leverage Efficiency</h4>
-            <p className="text-2xl font-bold text-indigo-600">
-              {performanceSummary.efficiencyMetrics ? 
-                `${performanceSummary.efficiencyMetrics.leverageRatio.toFixed(1)}x` :
-                `${((performanceSummary.finalTotalAsset - 240000) / 40000).toFixed(1)}x` // fallback
-              }
-            </p>
-            <p className="text-xs text-gray-500">Return per $ invested</p>
-          </div>
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Future Growth Potential</h4>
-            <p className="text-2xl font-bold text-orange-600">
-              {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
-            </p>
-            <p className="text-xs text-gray-500">Retained for appreciation</p>
-          </div>
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">BTC Sustainability</h4>
-            <p className="text-2xl font-bold text-green-600">
-              ✅ Sufficient
-            </p>
-            <p className="text-xs text-gray-500">Never runs out at current shortfall</p>
+      {/* Section 4: Decision Metrics (Risk & Efficiency) - TEMPORARILY HIDDEN */}
+      {/* TODO: Unhide and fix data communications - shows N/A and 0.0000 BTC instead of actual values */}
+      {false && (
+        <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Strategy Efficiency</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-600">Debt Elimination via BTC</h4>
+              <p className="text-2xl font-bold text-green-600">
+                {payoffAnalysis.triggerMonth ? 
+                  `${((payoffAnalysis.debtAtTrigger / payoffAnalysis.btcValueAtTrigger) * 100).toFixed(1)}%` : 
+                  'N/A'
+                }
+              </p>
+              <p className="text-xs text-gray-500">Payoff efficiency</p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-600">Leverage Efficiency</h4>
+              <p className="text-2xl font-bold text-indigo-600">
+                {performanceSummary.efficiencyMetrics ? 
+                  `${performanceSummary.efficiencyMetrics?.leverageRatio.toFixed(1)}x` :
+                  `${((performanceSummary.finalTotalAsset - 240000) / 40000).toFixed(1)}x` // fallback
+                }
+              </p>
+              <p className="text-xs text-gray-500">Return per $ invested</p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-600">Future Growth Potential</h4>
+              <p className="text-2xl font-bold text-orange-600">
+                {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
+              </p>
+              <p className="text-xs text-gray-500">Retained for appreciation</p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-600">BTC Sustainability</h4>
+              <p className="text-2xl font-bold text-green-600">
+                ✅ Sufficient
+              </p>
+              <p className="text-xs text-gray-500">Never runs out at current shortfall</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
