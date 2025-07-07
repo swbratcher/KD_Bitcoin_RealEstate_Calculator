@@ -52,6 +52,8 @@ export default function CalculatorForm({
   // Form state
   const [currentBitcoinPrice, setCurrentBitcoinPrice] = useState<number>(100000);
   const [bitcoinLoading, setBitcoinLoading] = useState(false);
+  const [bitcoinPriceError, setBitcoinPriceError] = useState<boolean>(false);
+  const [manualBitcoinPrice, setManualBitcoinPrice] = useState<string>('100000');
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [loanType, setLoanType] = useState<'refinance' | 'heloc'>('refinance');
 
@@ -211,8 +213,8 @@ export default function CalculatorForm({
     const hasMinimumData = propertyValue && currentBalance && monthlyPayment && 
                           currentInterestRate && cashOutAmount && newInterestRate;
     
-    // Also ensure we have a valid Bitcoin price (not the default 100000)
-    const hasValidBitcoinPrice = currentBitcoinPrice !== 100000;
+    // Always accept any valid Bitcoin price (including manual entries)
+    const hasValidBitcoinPrice = currentBitcoinPrice > 0;
     
     if (hasMinimumData && hasValidBitcoinPrice) {
       const inputs = buildCalculatorInputs();
@@ -247,22 +249,42 @@ export default function CalculatorForm({
 
   const fetchCurrentBitcoinPrice = async () => {
     setBitcoinLoading(true);
+    setBitcoinPriceError(false);
+    
     try {
       // Call CoinGecko directly (free public API)
       const response = await fetch(
         'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.bitcoin && data.bitcoin.usd) {
         setCurrentBitcoinPrice(data.bitcoin.usd);
+        setManualBitcoinPrice(data.bitcoin.usd.toString());
+        setBitcoinPriceError(false);
+      } else {
+        throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Failed to fetch Bitcoin price:', error);
-      // Keep default of $100,000 if fetch fails
+      setBitcoinPriceError(true);
+      // Use manual price as fallback
+      const manualPrice = parseFloat(manualBitcoinPrice) || 100000;
+      setCurrentBitcoinPrice(manualPrice);
     } finally {
       setBitcoinLoading(false);
     }
+  };
+
+  const handleManualBitcoinPriceChange = (value: string) => {
+    setManualBitcoinPrice(value);
+    const price = parseFloat(value) || 100000;
+    setCurrentBitcoinPrice(price);
   };
 
   const validateInputs = (): ValidationError[] => {
@@ -1316,19 +1338,61 @@ export default function CalculatorForm({
             <h3 className="text-lg font-semibold text-gray-900">Bitcoin Price Modeling</h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">Current Price:</span>
-              <span className={`text-sm font-semibold ${bitcoinLoading ? 'text-gray-400' : 'text-green-600'}`}>
-                {bitcoinLoading ? 'Loading...' : `$${formatDollar(currentBitcoinPrice)}`}
-              </span>
-              <button
-                type="button"
-                onClick={fetchCurrentBitcoinPrice}
-                className="text-xs text-blue-600 hover:text-blue-800"
-                disabled={bitcoinLoading}
-              >
-                Refresh
-              </button>
+              {!bitcoinPriceError ? (
+                <>
+                  <span className={`text-sm font-semibold ${bitcoinLoading ? 'text-gray-400' : 'text-green-600'}`}>
+                    {bitcoinLoading ? 'Loading...' : `$${formatDollar(currentBitcoinPrice)}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={fetchCurrentBitcoinPrice}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                    disabled={bitcoinLoading}
+                  >
+                    Refresh
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
+                    <input
+                      type="number"
+                      value={manualBitcoinPrice}
+                      onChange={(e) => handleManualBitcoinPriceChange(e.target.value)}
+                      className="input-field pl-8 pr-2 py-1 text-xs w-24"
+                      placeholder="100000"
+                      min="1"
+                      step="1000"
+                    />
+                  </div>
+                  <span className="text-xs text-amber-600">API offline</span>
+                  <button
+                    type="button"
+                    onClick={fetchCurrentBitcoinPrice}
+                    className="text-xs text-blue-600 hover:text-blue-800"
+                    disabled={bitcoinLoading}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+          
+          {bitcoinPriceError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <svg className="h-4 w-4 text-amber-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="text-xs text-amber-700">
+                  <p className="font-medium">Bitcoin price API unavailable</p>
+                  <p>Enter current Bitcoin price manually above. Calculator will use this price for all projections.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Persistent Auto-Config Buttons */}
           <div className="flex flex-wrap gap-2">
