@@ -95,6 +95,8 @@ export default function CalculatorForm({
   // NEW: Enhanced Bitcoin algorithm settings
   const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(false);
   const [finalCAGR, setFinalCAGR] = useState<string>('10'); // Final CAGR for diminishing returns
+  const [enableFlatteningCycles, setEnableFlatteningCycles] = useState<boolean>(false);
+  const [flatteningCyclePercent, setFlatteningCyclePercent] = useState<string>('30'); // Flattening cycle percentage
   
   // NEW: Property appreciation setting
   const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
@@ -1055,26 +1057,41 @@ export default function CalculatorForm({
               {/* Avg Annual Return - moved here to stay with Sentiment Auto-Config */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Avg Annual Return
+                  {enableDiminishingReturns ? 'Avg Annual Return & Diminishes To' : 'Avg Annual Return'}
                 </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={customAnnualGrowthRate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setCustomAnnualGrowthRate(value);
-                      // Clear sentiment selection when manually editing
-                      setBitcoinPerformanceSentiment('');
-                    }}
-                    className="input-field pr-8"
-                    placeholder="25"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                <div className="flex space-x-2">
+                  <div className="relative w-fit">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={customAnnualGrowthRate}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCustomAnnualGrowthRate(value);
+                        // Clear sentiment selection when manually editing
+                        setBitcoinPerformanceSentiment('');
+                      }}
+                      className="input-field pr-8 w-24"
+                      placeholder="25"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                  </div>
+                  {enableDiminishingReturns && (
+                    <div className="relative w-fit">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={finalCAGR}
+                        onChange={(e) => setFinalCAGR(e.target.value)}
+                        className="input-field pr-8 w-24"
+                        placeholder="10"
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Annual growth rate expectation
+                  {enableDiminishingReturns ? 'Bitcoin performance will decline from initial to final CAGR over loan term' : 'Annual growth rate expectation'}
                 </p>
               </div>
             </div>
@@ -1135,8 +1152,8 @@ export default function CalculatorForm({
                     <input
                       type="checkbox"
                       id="enableFlatteningCycles"
-                      checked={false}
-                      onChange={() => {}}
+                      checked={enableFlatteningCycles}
+                      onChange={(e) => setEnableFlatteningCycles(e.target.checked)}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <label htmlFor="enableFlatteningCycles" className="ml-2 block text-sm text-gray-900">
@@ -1149,51 +1166,46 @@ export default function CalculatorForm({
               {/* Bear Cycle Drawdown - moved here, width matches button */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bear Cycle Drawdown
+                  {enableFlatteningCycles ? 'Bear Cycle Drawdown Max & Flattens To' : 'Bear Cycle Drawdown'}
                 </label>
-                <div className="relative w-fit">
-                  <input
-                    type="number"
-                    step="5"
-                    min="10"
-                    max="90"
-                    value={bitcoinDrawdownPercent}
-                    onChange={(e) => setBitcoinDrawdownPercent(e.target.value)}
-                    className="input-field pr-8 w-24"
-                    placeholder="70"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                <div className="flex space-x-2">
+                  <div className="relative w-fit">
+                    <input
+                      type="number"
+                      step="5"
+                      min="10"
+                      max="90"
+                      value={bitcoinDrawdownPercent}
+                      onChange={(e) => setBitcoinDrawdownPercent(e.target.value)}
+                      className="input-field pr-8 w-24"
+                      placeholder="70"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                  </div>
+                  {enableFlatteningCycles && (
+                    <div className="relative w-fit">
+                      <input
+                        type="number"
+                        step="5"
+                        min="10"
+                        max="90"
+                        value={flatteningCyclePercent}
+                        onChange={(e) => setFlatteningCyclePercent(e.target.value)}
+                        className="input-field pr-8 w-24"
+                        placeholder="30"
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Maximum drawdown after bull market tops
+                  {enableFlatteningCycles ? 'Drawdown starts at max and flattens to lower percentage over time' : 'Maximum drawdown after bull market tops'}
                 </p>
               </div>
             </div>
           </div>
 
 
-          {/* Diminishing Returns Final CAGR (conditional) */}
-          {enableDiminishingReturns && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Final CAGR (Last Cycle)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={finalCAGR}
-                  onChange={(e) => setFinalCAGR(e.target.value)}
-                  className="input-field pr-8"
-                  placeholder="10"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Bitcoin performance will decline from initial to final CAGR over loan term
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Payoff Trigger Settings - MOVED ABOVE BITCOIN PERFORMANCE REPORT */}
