@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ReferenceLine
 } from 'recharts';
 
@@ -139,7 +138,6 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
             allowDataOverflow={true}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
           
           {/* Bitcoin Halving Reference Lines */}
           {halvingDates.map((halving) => (

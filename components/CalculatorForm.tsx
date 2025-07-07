@@ -100,6 +100,10 @@ export default function CalculatorForm({
   
   // NEW: Property appreciation setting
   const [propertyAppreciationRate, setPropertyAppreciationRate] = useState<string>('3'); // 3% annual default
+  
+  // NEW: Bitcoin Price Modeling UI state
+  const [isCustomConfigExpanded, setIsCustomConfigExpanded] = useState<boolean>(false);
+  const [selectedPreset, setSelectedPreset] = useState<string>('bullish'); // Track which preset is selected
 
   // Calculated values
   const [availableEquity, setAvailableEquity] = useState<number>(0);
@@ -1066,7 +1070,7 @@ export default function CalculatorForm({
             {/* BTC Status Indicator */}
             <div className="mt-4 p-3 bg-white rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">BTC Crashout Status:</span>
+                <span className="text-sm font-medium text-gray-700">BTC Crashout Likelihood:</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                   getSentimentPercentage() >= 20 && monthlyShortfall < (parseFloat(cashOutAmount) || 0) * 0.1
                     ? 'bg-green-100 text-green-800' 
@@ -1085,6 +1089,64 @@ export default function CalculatorForm({
               <p className="text-xs text-gray-500 mt-1">
                 Based on performance sentiment and monthly cash flow requirements
               </p>
+            </div>
+
+            {/* Payoff Trigger Settings - moved into Bitcoin Position */}
+            <div className="mt-4 p-3 bg-white rounded-lg border-t border-gray-100">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Payoff Trigger Settings</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Trigger Type
+                  </label>
+                  <select
+                    value={payoffTriggerType}
+                    onChange={(e) => setPayoffTriggerType(e.target.value as 'percentage' | 'retained_amount')}
+                    className="input-field text-sm"
+                  >
+                    <option value="percentage">BTC Value as % of Remaining Debt</option>
+                    <option value="retained_amount">Retain Specific BTC Amount</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {payoffTriggerType === 'percentage' ? 'Trigger Percentage' : 'Retained Amount'}
+                  </label>
+                  <div className="relative">
+                    {payoffTriggerType === 'percentage' ? (
+                      <>
+                        <input
+                          type="number"
+                          value={payoffTriggerValue}
+                          onChange={(e) => setPayoffTriggerValue(e.target.value)}
+                          className="input-field pr-8 text-sm"
+                          placeholder="200"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BTC</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={payoffTriggerValue}
+                          onChange={(e) => setPayoffTriggerValue(e.target.value)}
+                          className="input-field pl-12 text-sm"
+                          placeholder="1.5"
+                        />
+                      </>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {payoffTriggerType === 'percentage' 
+                      ? 'Trigger payoff when BTC value reaches this % of remaining debt'
+                      : 'Trigger payoff while retaining this amount in BTC'
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1109,343 +1171,316 @@ export default function CalculatorForm({
             </div>
           </div>
 
-          {/* Row 1: Sentiment Auto-Config and Avg Annual Return (left) and Price Model + Cycle Settings (right) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sentiment Auto-Config and Avg Annual Return (left) */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sentiment Auto-Config
-                </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBitcoinPerformanceSentiment('bullish');
-                    setCustomAnnualGrowthRate('60');
-                    setEnableDiminishingReturns(true);
-                    setFinalCAGR('15');
-                    setEnableFlatteningCycles(true);
-                    setBitcoinDrawdownPercent('60');
-                    setFlatteningCyclePercent('25');
-                  }}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    bitcoinPerformanceSentiment === 'bullish' 
-                      ? 'bg-blue-500 text-white border-blue-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  Bullish
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBitcoinPerformanceSentiment('realist');
-                    setCustomAnnualGrowthRate('20');
-                    setEnableDiminishingReturns(true);
-                    setFinalCAGR('15');
-                    setEnableFlatteningCycles(true);
-                    setBitcoinDrawdownPercent('70');
-                    setFlatteningCyclePercent('45');
-                  }}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    bitcoinPerformanceSentiment === 'realist' 
-                      ? 'bg-blue-500 text-white border-blue-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  Realist
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBitcoinPerformanceSentiment('3xmaxi');
-                    setCustomAnnualGrowthRate('60');
-                    setEnableDiminishingReturns(true);
-                    setFinalCAGR('20');
-                    setEnableFlatteningCycles(true);
-                    setBitcoinDrawdownPercent('60');
-                    setFlatteningCyclePercent('40');
-                  }}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    bitcoinPerformanceSentiment === '3xmaxi' 
-                      ? 'bg-blue-500 text-white border-blue-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  3x Maxi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBitcoinPerformanceSentiment('bearish');
-                    setCustomAnnualGrowthRate('10');
-                    setEnableDiminishingReturns(true);
-                    setFinalCAGR('-10');
-                    setEnableFlatteningCycles(true);
-                    setBitcoinDrawdownPercent('80');
-                    setFlatteningCyclePercent('60');
-                  }}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    bitcoinPerformanceSentiment === 'bearish' 
-                      ? 'bg-blue-500 text-white border-blue-500' 
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  Bearish
-                </button>
-              </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Click to set growth rate or enter custom value in Avg Annual Return
-                </p>
-              </div>
-              
-              {/* Avg Annual Return - moved here to stay with Sentiment Auto-Config */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {enableDiminishingReturns ? 'Avg Annual Return & Diminishes To' : 'Avg Annual Return'}
-                </label>
-                <div className="flex space-x-2">
-                  <div className="relative w-fit">
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={customAnnualGrowthRate}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setCustomAnnualGrowthRate(value);
-                        // Clear sentiment selection when manually editing
-                        setBitcoinPerformanceSentiment('');
-                      }}
-                      className="input-field pr-8 w-24"
-                      placeholder="25"
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                  </div>
-                  {enableDiminishingReturns && (
-                    <div className="relative w-fit">
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={finalCAGR}
-                        onChange={(e) => setFinalCAGR(e.target.value)}
-                        className="input-field pr-8 w-24"
-                        placeholder="10"
-                      />
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                    </div>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  {enableDiminishingReturns ? 'Bitcoin performance will decline from initial to final CAGR over loan term' : 'Annual growth rate expectation'}
-                </p>
-              </div>
-            </div>
-
-            {/* Price Model and Cycle Settings (right) */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price Model
-                </label>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setBitcoinPerformanceModel('cycles')}
-                    className={`px-4 py-2 rounded-lg border transition-colors ${
-                      bitcoinPerformanceModel === 'cycles' 
-                        ? 'bg-blue-500 text-white border-blue-500' 
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    4yr Cycles
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBitcoinPerformanceModel('flat')}
-                    className={`px-4 py-2 rounded-lg border transition-colors ${
-                      bitcoinPerformanceModel === 'flat' 
-                        ? 'bg-blue-500 text-white border-blue-500' 
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    Flat Growth
-                  </button>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Cycles use market patterns, Flat uses steady growth
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cycle Settings
-                </label>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="enableDiminishingReturns"
-                      checked={enableDiminishingReturns}
-                      onChange={(e) => setEnableDiminishingReturns(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="enableDiminishingReturns" className="ml-2 block text-sm text-gray-900">
-                      Enable Diminishing Returns
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="enableFlatteningCycles"
-                      checked={enableFlatteningCycles}
-                      onChange={(e) => setEnableFlatteningCycles(e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="enableFlatteningCycles" className="ml-2 block text-sm text-gray-900">
-                      Enable Flattening Cycles
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bear Cycle Drawdown - moved here, width matches button */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {enableFlatteningCycles ? 'Bear Cycle Drawdown Max & Flattens To' : 'Bear Cycle Drawdown'}
-                </label>
-                <div className="flex space-x-2">
-                  <div className="relative w-fit">
-                    <input
-                      type="number"
-                      step="5"
-                      min="10"
-                      max="90"
-                      value={bitcoinDrawdownPercent}
-                      onChange={(e) => setBitcoinDrawdownPercent(e.target.value)}
-                      className="input-field pr-8 w-24"
-                      placeholder="70"
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                  </div>
-                  {enableFlatteningCycles && (
-                    <div className="relative w-fit">
-                      <input
-                        type="number"
-                        step="5"
-                        min="10"
-                        max="90"
-                        value={flatteningCyclePercent}
-                        onChange={(e) => setFlatteningCyclePercent(e.target.value)}
-                        className="input-field pr-8 w-24"
-                        placeholder="30"
-                      />
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                    </div>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  {enableFlatteningCycles ? 'Drawdown starts at max and flattens to lower percentage over time' : 'Maximum drawdown after bull market tops'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-
-        </div>
-
-        {/* Payoff Trigger Settings - MOVED ABOVE BITCOIN PERFORMANCE REPORT */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Payoff Trigger Settings</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trigger Type
-              </label>
-              <select
-                value={payoffTriggerType}
-                onChange={(e) => setPayoffTriggerType(e.target.value as 'percentage' | 'retained_amount')}
-                className="input-field"
+          {/* Persistent Auto-Config Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBitcoinPerformanceSentiment('bullish');
+                  setCustomAnnualGrowthRate('60');
+                  setEnableDiminishingReturns(true);
+                  setFinalCAGR('15');
+                  setEnableFlatteningCycles(true);
+                  setBitcoinDrawdownPercent('60');
+                  setFlatteningCyclePercent('25');
+                  setBitcoinPerformanceModel('cycles');
+                  setSelectedPreset('bullish');
+                  setIsCustomConfigExpanded(false);
+                }}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  selectedPreset === 'bullish' 
+                    ? 'bg-blue-500 text-white border-blue-500' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
               >
-                <option value="percentage">BTC Value as % of Remaining Debt</option>
-                <option value="retained_amount">Retain Specific BTC Amount</option>
-              </select>
+                Bullish
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBitcoinPerformanceSentiment('realist');
+                  setCustomAnnualGrowthRate('20');
+                  setEnableDiminishingReturns(true);
+                  setFinalCAGR('15');
+                  setEnableFlatteningCycles(true);
+                  setBitcoinDrawdownPercent('70');
+                  setFlatteningCyclePercent('45');
+                  setBitcoinPerformanceModel('cycles');
+                  setSelectedPreset('realist');
+                  setIsCustomConfigExpanded(false);
+                }}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  selectedPreset === 'realist' 
+                    ? 'bg-blue-500 text-white border-blue-500' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                Realist
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBitcoinPerformanceSentiment('3xmaxi');
+                  setCustomAnnualGrowthRate('60');
+                  setEnableDiminishingReturns(true);
+                  setFinalCAGR('20');
+                  setEnableFlatteningCycles(true);
+                  setBitcoinDrawdownPercent('60');
+                  setFlatteningCyclePercent('40');
+                  setBitcoinPerformanceModel('cycles');
+                  setSelectedPreset('3xmaxi');
+                  setIsCustomConfigExpanded(false);
+                }}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  selectedPreset === '3xmaxi' 
+                    ? 'bg-blue-500 text-white border-blue-500' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                3x Maxi
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBitcoinPerformanceSentiment('bearish');
+                  setCustomAnnualGrowthRate('10');
+                  setEnableDiminishingReturns(true);
+                  setFinalCAGR('-10');
+                  setEnableFlatteningCycles(true);
+                  setBitcoinDrawdownPercent('80');
+                  setFlatteningCyclePercent('60');
+                  setBitcoinPerformanceModel('cycles');
+                  setSelectedPreset('bearish');
+                  setIsCustomConfigExpanded(false);
+                }}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  selectedPreset === 'bearish' 
+                    ? 'bg-blue-500 text-white border-blue-500' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                Bearish
+              </button>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {payoffTriggerType === 'percentage' ? 'Trigger Percentage' : 'Retained Amount'}
-              </label>
-              <div className="relative">
-                {payoffTriggerType === 'percentage' ? (
-                  <>
-                    <input
-                      type="number"
-                      value={payoffTriggerValue}
-                      onChange={(e) => setPayoffTriggerValue(e.target.value)}
-                      className="input-field pr-8"
-                      placeholder="200"
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">BTC</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={payoffTriggerValue}
-                      onChange={(e) => setPayoffTriggerValue(e.target.value)}
-                      className="input-field pl-12"
-                      placeholder="1.5"
-                    />
-                  </>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                {payoffTriggerType === 'percentage' 
-                  ? 'Trigger payoff when BTC value reaches this % of remaining debt'
-                  : 'Trigger payoff while retaining this amount in BTC'
-                }
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPreset('custom');
+                setIsCustomConfigExpanded(true);
+              }}
+              className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                selectedPreset === 'custom' 
+                  ? 'bg-gray-500 text-white border-gray-500' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Custom
+            </button>
           </div>
-        </div>
 
+          {/* Compact Status Display for Presets */}
+          {!isCustomConfigExpanded && selectedPreset !== 'custom' && (
+            <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 border-l-4 border-blue-500">
+              <span className="font-semibold capitalize">{selectedPreset}:</span>
+              <span className="ml-1">
+                {customAnnualGrowthRate}%{enableDiminishingReturns && ` → ${finalCAGR}%`}, 
+                {bitcoinPerformanceModel === 'cycles' ? ' Cycles' : ' Flat Growth'}, 
+                {bitcoinDrawdownPercent}% drawdown
+                {enableFlatteningCycles && `, ${flatteningCyclePercent}% flattening`}
+              </span>
+            </div>
+          )}
+
+          {/* Collapsible Custom Configuration */}
+          {isCustomConfigExpanded && (
+            <div className="space-y-6 border-t pt-4 transition-all duration-300 ease-in-out">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column: Growth Rate Settings */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {enableDiminishingReturns ? 'Avg Annual Return & Diminishes To' : 'Avg Annual Return'}
+                    </label>
+                    <div className="flex space-x-2">
+                      <div className="relative w-fit">
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={customAnnualGrowthRate}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setCustomAnnualGrowthRate(value);
+                            setBitcoinPerformanceSentiment('custom');
+                          }}
+                          className="input-field pr-8 w-24"
+                          placeholder="25"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                      </div>
+                      {enableDiminishingReturns && (
+                        <div className="relative w-fit">
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={finalCAGR}
+                            onChange={(e) => setFinalCAGR(e.target.value)}
+                            className="input-field pr-8 w-24"
+                            placeholder="10"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {enableDiminishingReturns ? 'Bitcoin performance will decline from initial to final CAGR over loan term' : 'Annual growth rate expectation'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {enableFlatteningCycles ? 'Bear Cycle Drawdown Max & Flattens To' : 'Bear Cycle Drawdown'}
+                    </label>
+                    <div className="flex space-x-2">
+                      <div className="relative w-fit">
+                        <input
+                          type="number"
+                          step="5"
+                          min="10"
+                          max="90"
+                          value={bitcoinDrawdownPercent}
+                          onChange={(e) => setBitcoinDrawdownPercent(e.target.value)}
+                          className="input-field pr-8 w-24"
+                          placeholder="70"
+                        />
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                      </div>
+                      {enableFlatteningCycles && (
+                        <div className="relative w-fit">
+                          <input
+                            type="number"
+                            step="5"
+                            min="10"
+                            max="90"
+                            value={flatteningCyclePercent}
+                            onChange={(e) => setFlatteningCyclePercent(e.target.value)}
+                            className="input-field pr-8 w-24"
+                            placeholder="30"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {enableFlatteningCycles ? 'Drawdown starts at max and flattens to lower percentage over time' : 'Maximum drawdown after bull market tops'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Model and Cycle Settings */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price Model
+                    </label>
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setBitcoinPerformanceModel('cycles')}
+                        className={`px-4 py-2 rounded-lg border transition-colors ${
+                          bitcoinPerformanceModel === 'cycles' 
+                            ? 'bg-blue-500 text-white border-blue-500' 
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        4yr Cycles
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBitcoinPerformanceModel('flat')}
+                        className={`px-4 py-2 rounded-lg border transition-colors ${
+                          bitcoinPerformanceModel === 'flat' 
+                            ? 'bg-blue-500 text-white border-blue-500' 
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        Flat Growth
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Cycles use market patterns, Flat uses steady growth
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cycle Settings
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="enableDiminishingReturns"
+                          checked={enableDiminishingReturns}
+                          onChange={(e) => setEnableDiminishingReturns(e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="enableDiminishingReturns" className="ml-2 block text-sm text-gray-900">
+                          Enable Diminishing Returns
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="enableFlatteningCycles"
+                          checked={enableFlatteningCycles}
+                          onChange={(e) => setEnableFlatteningCycles(e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="enableFlatteningCycles" className="ml-2 block text-sm text-gray-900">
+                          Enable Flattening Cycles
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Amortization Timeline Visualization */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Timeline Visualization</h3>
           <div className="bg-white p-6 border border-gray-200 rounded-lg">
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                20-year projection showing debt paydown, property appreciation, and Bitcoin performance
-              </p>
-                             <div className="flex flex-wrap gap-4 text-xs">
-                 <div className="flex items-center">
-                   <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
-                   <span>Debt</span>
-                 </div>
-                 <div className="flex items-center">
-                   <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
-                   <span>Base Equity</span>
-                 </div>
-                 <div className="flex items-center">
-                   <div className="w-3 h-3 bg-green-400 rounded mr-2"></div>
-                   <span>Appreciation</span>
-                 </div>
-                 <div className="flex items-center">
-                   <div className="w-3 h-3 bg-orange-600 rounded mr-2"></div>
-                   <span>BTC Value</span>
-                 </div>
-               </div>
-            </div>
-            
             <AmortizationChart 
               data={realChartData || generateSampleChartData()}
               height={350}
             />
+            
+            <div className="mt-4">
+              <p className="text-sm text-gray-600 mb-2">
+                20-year projection showing debt paydown, property appreciation, and Bitcoin performance
+              </p>
+              <div className="flex flex-wrap gap-4 text-xs">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
+                  <span>Debt</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
+                  <span>Base Equity</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-green-400 rounded mr-2"></div>
+                  <span>Appreciation</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 bg-orange-600 rounded mr-2"></div>
+                  <span>BTC Value</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
