@@ -32,47 +32,7 @@ export default function KrigerDanesHeader() {
             </Link>
           </div>
 
-          {/* Navigation */}
-          <div className="flex items-center space-x-8">
-            <nav className="hidden md:flex space-x-8">
-              <Link 
-                href="https://krigerdanes.com/books/"
-                className="text-[#DD0000] hover:text-red-700 transition-colors duration-200 font-semibold text-sm uppercase tracking-wider"
-              >
-                LIBRARY
-              </Link>
-              <Link 
-                href="https://krigerdanes.com/contact/"
-                className="text-[#DD0000] hover:text-red-700 transition-colors duration-200 font-semibold text-sm uppercase tracking-wider"
-              >
-                CONTACT
-              </Link>
-              <Link 
-                href="https://krigerdanes.com/get-notified/"
-                className="text-[#DD0000] hover:text-red-700 transition-colors duration-200 font-semibold text-sm uppercase tracking-wider"
-              >
-                GET NOTIFIED
-              </Link>
-            </nav>
 
-            {/* Tool Title */}
-            <div className="hidden lg:block text-gray-600 text-sm font-medium border-l border-gray-200 pl-6">
-              Bitcoin Real Estate Calculator
-            </div>
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button 
-              type="button"
-              className="text-[#DD0000] hover:text-red-700 transition-colors"
-              aria-label="Open menu"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
         </div>
       </div>
     </header>

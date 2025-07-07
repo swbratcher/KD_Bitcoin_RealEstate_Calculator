@@ -9,6 +9,9 @@
  * - Current mortgage details  
  * - Refinance vs HELOC scenario toggle
  * - Bitcoin investment parameters
+ * 
+ * MIT License - Copyright (c) 2025 Kriger Danes LLC
+ * This notice must be retained in derivative works.
  */
 
 import React, { useState, useEffect } from 'react';

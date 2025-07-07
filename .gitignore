@@ -26,11 +26,20 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts 
-.env
+next-env.d.ts
+
+# Claude AI development files
+.claude/
+CLAUDE.local.md
+CLAUDE.md
+
+# Development artifacts
+Archive.zip
+out_bu/
