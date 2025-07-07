@@ -1,175 +1,250 @@
-# Bitcoin Real Estate Calculator
+# KD Bitcoin Real Estate Calculator
 
-A comprehensive Bitcoin + Real Estate investment calculator with enhanced seasonal performance modeling and real-time price integration.
+A comprehensive, privacy-focused calculator for analyzing Bitcoin investment strategies alongside real estate refinancing decisions. This tool helps users model scenarios where Bitcoin holdings are used to optimize mortgage strategies.
 
-## Quick Start
+## 🎯 What This Tool Does
 
-### For Developers
+**For Property Owners**: Model how Bitcoin investments could affect your refinancing strategy, including cash-out refinancing and HELOC scenarios. Calculate optimal payoff timing and risk assessment.
+
+**For Bitcoin Holders**: Analyze how real estate leverage can be combined with Bitcoin appreciation to build wealth while managing debt payoff timing.
+
+**Core Analysis**:
+- Month-by-month cash flow projections over 20-30 years
+- Bitcoin performance modeling with multiple scenarios (Bullish, Realistic, Bearish)
+- Loan payoff optimization triggers (2x debt value, retained BTC amount, etc.)
+- Risk assessment including market drawdown scenarios
+- Property appreciation alongside Bitcoin growth
+
+## 🔒 Privacy & Security First
+
+- **100% Client-Side**: All calculations run in your browser
+- **No Data Collection**: Your financial information never leaves your device
+- **No Analytics**: No tracking, cookies, or data transmission
+- **Open Source**: Full transparency with MIT license
+- **Future-Proof**: Works offline, includes Bitcoin price fallback system
+
+## 🚀 Quick Start
+
+### For Users
+
+1. **Visit the Calculator**: Deploy to any static hosting or run locally
+2. **Enter Property Details**: Current value, mortgage balance, monthly payment
+3. **Choose Loan Strategy**: Cash-out refinance or HELOC
+4. **Set Bitcoin Parameters**: Investment amount and growth scenario
+5. **Analyze Results**: View projections, charts, and risk assessments
+
+### Current Bitcoin Price
+
+The tool automatically fetches live Bitcoin prices from CoinGecko API. If the API is unavailable, it gracefully falls back to a manual input field pre-populated with $100,000 that you can adjust.
+
+## 🛠 For Developers
+
+### Getting Started
+
 ```bash
+# Clone and install
+git clone <repository-url>
+cd KD_Bitcoin_RealEstate_Calc
 npm install
-npm run dev
-```
 
-### For AI Development Models 🤖
-
-**⚠️ MANDATORY FIRST STEP**: Read the architecture documentation to understand the complete system before making any changes.
-
-**Start Here**: [Architecture Overview](./docs/architecture-overview.md)
-
-## Documentation Hierarchy (REQUIRED READING)
-
-### 1. Business Requirements (PRD)
-- **[Product Requirements Document](./docs/prd-real-property-calculator-revised.md)** - Business scope and user stories
-- **[Task List](./docs/tasks-prd-real-property-calculator-revised.md)** - Implementation tasks with completion status
-
-### 2. Technical Architecture (ESSENTIAL)
-- **[Architecture Overview](./docs/architecture-overview.md)** - Complete system understanding (READ FIRST)
-- **[Function Reference](./docs/function-reference.md)** - All calculation functions and APIs  
-- **[Data Flow Map](./docs/data-flow-map.md)** - Complete data pipeline from input to visualization
-
-### 3. Development Process (MDC Workflow)
-- `create-prd.mdc` - PRD generation process
-- `generate-tasks.mdc` - Task breakdown methodology  
-- `process-task-list.mdc` - Development workflow protocols
-
-## Current Implementation Status
-
-This application has evolved **beyond the original MVP scope** and includes:
-
-✅ **Enhanced Bitcoin Algorithm**: Seasonal performance with real halving alignment  
-✅ **Comprehensive Amortization**: Complete cash flow and payoff analysis  
-✅ **Real-time Integration**: Live Bitcoin pricing via CoinGecko API  
-✅ **Advanced Visualization**: Stacked area charts with Recharts  
-✅ **TypeScript Architecture**: Complete type safety and validation  
-
-## Technology Stack
-
-- **Framework**: Next.js 14 (App Router, Static Export)
-- **Language**: TypeScript  
-- **UI**: React 18 + Tailwind CSS
-- **Charts**: Recharts (stacked area visualization)
-- **Testing**: Jest + ts-jest
-- **Deployment**: Static export to CPanel
-
-## Key Features
-
-### Bitcoin Performance Engine
-- **Real Halving Alignment**: Based on April 20, 2024 halving
-- **Seasonal Cycles**: 18/12/6/6 month Summer/Fall/Winter/Spring patterns
-- **Diminishing Returns**: Optional CAGR progression across cycles
-- **Smooth Price Action**: Eliminates spikes through multiplicative factors
-
-### Comprehensive Analysis
-- **Complete Amortization**: Month-by-month debt + Bitcoin + cash flow
-- **Payoff Triggers**: Configurable loan payoff conditions
-- **Risk Assessment**: Multiple scenario modeling
-- **Export Ready**: Professional-grade calculations
-
-### User Experience
-- **Live Bitcoin Price**: Real-time CoinGecko integration
-- **Instant Calculations**: Auto-updating results on input changes
-- **Mobile Responsive**: Works on all devices
-- **Data Privacy**: Client-side only, no data transmission
-
-## Development Protocols for AI Models
-
-### PERMANENT DEVELOPER PROTOCOLS
-
-#### When User Says "Think Hard"
-= STOP LINEAR THINKING IMMEDIATELY
-- Map ENTIRE system architecture first
-- Trace ALL data sources and flows  
-- Find competing/parallel implementations
-- Never assume - always verify programmatically
-
-#### Universal Project Start (Complex Issues)
-BEFORE ANY CHANGES:
-1. Search entire codebase for all related components
-2. Read architecture documentation files
-3. Map complete data pipeline (input → processing → output)
-4. Identify all data sources and potential conflicts
-5. Document findings before coding
-
-#### Debugging Protocol
-When encountering data mismatches:
-1. Search for ALL instances: `grep -r "ComponentName\|DataType" --include="*.tsx"`
-2. Map ALL code paths that create/modify that data
-3. Verify single source of truth exists  
-4. Check for competing implementations
-
-**RULE**: Complex debugging starts with architecture mapping, not code changes.
-
-## Project Structure
-
-```
-├── app/                    # Next.js App Router
-│   ├── page.tsx           # Main calculator (orchestrates data flow)
-│   ├── layout.tsx         # Global layout
-│   └── api/               # API routes (Bitcoin price)
-├── components/            # React UI Components  
-│   ├── CalculatorForm.tsx     # Input collection + chart
-│   ├── AmortizationResults.tsx # Monthly table display
-│   └── AmortizationChart.tsx   # Stacked area visualization
-├── lib/                   # Core Business Logic
-│   ├── calculations/          # Calculation engines
-│   │   ├── enhanced-bitcoin-performance.ts  # 🎯 PRIMARY: Seasonal algorithm
-│   │   ├── comprehensive-amortization.ts    # 🎯 PRIMARY: Complete engine
-│   │   ├── halving-date-utils.ts           # Real halving utilities
-│   │   └── ...
-│   ├── types/                # TypeScript definitions
-│   ├── utils/                # Utility functions
-│   └── api/                  # External API integration
-├── docs/                  # Documentation
-│   ├── architecture-overview.md    # System architecture
-│   ├── function-reference.md       # Function documentation
-│   ├── data-flow-map.md           # Data pipeline mapping
-│   ├── prd-real-property-calculator-revised.md  # Business requirements
-│   └── tasks-prd-real-property-calculator-revised.md  # Implementation tasks
-└── *.mdc                  # MDC workflow files
-```
-
-## Getting Started for Development
-
-### Prerequisites
-```bash
-npm install
-```
-
-### Development Commands
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
+# Development
+npm run dev          # Start development server at http://localhost:3000
+npm run build        # Build for production (exports to /out)
 npm run test         # Run test suite
 npm run lint         # Lint code
 ```
 
-### For AI Models Working on This Codebase
+### Technology Stack
 
-1. **Read Architecture First**: Start with `docs/architecture-overview.md`
-2. **Understand Data Flow**: Review `docs/data-flow-map.md`  
-3. **Check Function Reference**: Use `docs/function-reference.md` for API details
-4. **Follow Protocols**: Apply permanent developer protocols for all changes
-5. **Verify Integration**: Ensure chart and table use same data sources
+- **Framework**: Next.js 14 (App Router, Static Export)
+- **Language**: TypeScript with strict type safety
+- **UI**: React 18 + Tailwind CSS
+- **Charts**: Recharts for data visualization
+- **API**: CoinGecko integration with fallback
+- **Testing**: Jest + React Testing Library
+- **License**: MIT
 
-### Key Dates & Timeline
-- **Last Bitcoin Halving**: April 20, 2024
-- **Current Date**: Dynamic (new Date())
-- **Loan Start**: First day of current month (Month 1)
-- **Cycle Position**: Calculated dynamically from current date
+### Key Architecture Principles
 
-## Contributing
+#### 1. **Privacy by Design**
+- All calculations are client-side only
+- No external data transmission of user inputs
+- API calls only for Bitcoin price (optional)
+- No analytics or tracking
 
-This project follows a structured MDC workflow for feature development:
+#### 2. **User-Centric Development**
+- Prioritize accuracy and usefulness over complexity
+- Graceful degradation when external services fail
+- Mobile-responsive design
+- Instant feedback and live calculations
 
-1. **PRD Creation**: Use `create-prd.mdc` for new features
-2. **Task Generation**: Use `generate-tasks.mdc` to break down PRDs  
-3. **Implementation**: Use `process-task-list.mdc` for systematic development
-4. **Architecture Review**: Always consult technical documentation before changes
+#### 3. **Reliability & Future-Proofing**
+- Bitcoin price fallback system for API outages
+- Static deployment compatible (no server required)
+- Progressive enhancement approach
+- Comprehensive error handling
 
-## License
+### Core Components (Don't Break These!)
 
-Private project for KrigerDanes Bitcoin Real Estate Calculator.
+#### Critical Calculation Engines
+```
+lib/calculations/
+├── comprehensive-amortization.ts    # 🔥 CORE: Monthly projections
+├── enhanced-bitcoin-performance.ts  # 🔥 CORE: Bitcoin modeling
+├── mortgage.ts                      # Loan calculations
+└── bitcoin.ts                       # Price scenarios
+```
+
+#### Essential UI Components
+```
+components/
+├── CalculatorForm.tsx              # 🔥 CORE: Input collection
+├── AmortizationResults.tsx         # Results display
+├── AmortizationChart.tsx           # Data visualization
+├── KrigerDanesHeader.tsx           # Clean header
+└── KrigerDanesFooter.tsx           # Legal disclaimers
+```
+
+### Development Guidelines
+
+#### ✅ Safe Changes
+- UI improvements and styling
+- Additional Bitcoin price scenarios
+- Enhanced chart visualizations
+- New input validation
+- Performance optimizations
+- Documentation updates
+
+#### ⚠️ Requires Care
+- Calculation logic modifications
+- Data flow between components
+- Bitcoin price fetching system
+- Form state management
+- Type definitions
+
+#### 🚫 Don't Break
+- Privacy guarantees (client-side only)
+- Bitcoin price fallback system
+- Core calculation accuracy
+- Static deployment compatibility
+- MIT license compliance
+- Professional disclaimers
+
+### Code Quality Standards
+
+1. **Type Safety**: All components must be fully typed
+2. **Test Coverage**: Add tests for calculation logic changes
+3. **Error Handling**: Graceful degradation for all external dependencies
+4. **Performance**: Calculations should be responsive (<100ms for UI updates)
+5. **Privacy**: Never transmit user financial data externally
+
+## 📊 Features
+
+### Bitcoin Performance Modeling
+- **Multiple Scenarios**: Bullish (60%→15%), Realistic, Bearish, Custom
+- **Cycle Awareness**: Accounts for Bitcoin halving cycles
+- **Diminishing Returns**: Models performance degradation over time
+- **Risk Management**: Maximum drawdown scenarios (30-60%)
+
+### Loan Strategy Analysis
+- **Cash-Out Refinance**: Complete mortgage restructuring
+- **HELOC Options**: Home equity lines of credit
+- **Payoff Optimization**: Smart trigger points for debt elimination
+- **Cash Flow Projections**: Month-by-month analysis
+
+### Risk Assessment
+- **Market Stress Testing**: Various Bitcoin crash scenarios
+- **Sustainability Analysis**: Long-term holding viability
+- **Payoff Probability**: Data-driven success metrics
+- **Retained Bitcoin**: Shows remaining holdings after payoff
+
+## 🔧 Deployment
+
+### Static Deployment (Recommended)
+```bash
+npm run build
+# Deploy /out directory to any static host
+# Works with: GitHub Pages, Netlify, Vercel, CDN, cPanel
+```
+
+### WordPress Integration
+The tool is designed to be deployed as a subdirectory alongside WordPress:
+```
+your-domain.com/
+├── wordpress-files/
+└── bitcoin_realestate_calculator/  # Deploy /out contents here
+```
+
+## 📝 License & Legal
+
+### Open Source License
+- **MIT License**: Free for commercial and personal use
+- **Attribution Required**: Credit Kriger Danes LLC in derivative works
+- **Full License**: See [LICENSE](./LICENSE) file
+
+### Professional Disclaimers
+- Educational and informational purposes only
+- Not financial, investment, tax, or legal advice
+- Users must consult qualified professionals
+- Investments carry significant risks including loss of principal
+
+## 🤝 Contributing
+
+We welcome contributions that maintain our core principles:
+
+### Priority Order
+1. **User Privacy & Security**: Never compromise client-side architecture
+2. **Calculation Accuracy**: Ensure financial projections are reliable
+3. **User Experience**: Intuitive, responsive, helpful
+4. **Developer Experience**: Clear code, good documentation
+5. **Feature Additions**: New capabilities that add value
+
+### Contribution Process
+1. **Read Architecture**: Understand the system before changing it
+2. **Check Tests**: Ensure existing functionality isn't broken
+3. **Add Tests**: Cover new calculation logic with tests
+4. **Update Docs**: Keep documentation current
+5. **Privacy Review**: Verify no data leakage in changes
+
+### What We're Looking For
+- Enhanced Bitcoin modeling scenarios
+- Improved risk assessment tools
+- Better data visualizations
+- Mobile UX improvements
+- Performance optimizations
+- Documentation improvements
+
+### What We Won't Accept
+- Analytics or tracking additions
+- External data transmission of user inputs
+- Server-side calculation requirements
+- Breaking changes to core calculation engines
+- License violations or attribution removal
+
+## 📞 Support
+
+- **Issues**: Use GitHub Issues for bugs and feature requests
+- **Discussions**: GitHub Discussions for questions and ideas
+- **Security**: Private disclosure for security-related issues
+
+## 🎯 Development Roadmap
+
+### Current Status: Production Ready ✅
+- Full feature implementation complete
+- Bitcoin price fallback system
+- Professional legal disclaimers
+- MIT license compliance
+- Clean UI for public use
+
+### Future Enhancements
+- Additional loan scenarios (VA, FHA, etc.)
+- Enhanced visualization options
+- Export capabilities (PDF reports)
+- Historical backtesting features
+- Advanced risk modeling
 
 ---
 
-**For AI Models**: This project requires architecture-first development. Always read the technical documentation before making changes to prevent data flow issues and maintain system integrity.
+**Built with privacy, accuracy, and user empowerment in mind.**
+
+*For questions about the tool's financial concepts, consult with qualified financial professionals. For technical questions, see our documentation or open an issue.*
