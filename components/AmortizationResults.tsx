@@ -219,7 +219,20 @@ function AmortizationTable({
 }
 
 function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
-  const { payoffAnalysis, performanceSummary } = results;
+  const { payoffAnalysis, performanceSummary, monthlySchedule } = results;
+  
+  // Calculate loan term from monthly schedule - find when debt naturally goes to zero
+  const calculateLoanTermYears = () => {
+    // Find the last month with debt > 0 where it wasn't paid off by trigger
+    let lastMonthWithDebt = 0;
+    for (let i = 0; i < monthlySchedule.length; i++) {
+      const entry = monthlySchedule[i];
+      if (entry.debtBalance > 0 && !entry.payoffTriggerMet) {
+        lastMonthWithDebt = entry.month;
+      }
+    }
+    return Math.round(lastMonthWithDebt / 12);
+  };
 
   return (
     <div className="space-y-6">
@@ -232,7 +245,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             <p className="text-2xl font-bold text-blue-600">
               {payoffAnalysis.triggerMonth ? 
                 `${(payoffAnalysis.triggerMonth / 12).toFixed(1)} Years` : 
-                'Not Achieved'
+                'Full Term'
               }
             </p>
             <p className="text-sm text-gray-500">
@@ -241,7 +254,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
                   year: 'numeric', 
                   month: 'short' 
                 }).toUpperCase() : 
-                'N/A'
+                `${calculateLoanTermYears()} Years`
               }
             </p>
           </div>

@@ -203,9 +203,13 @@ export function generateComprehensiveAmortizationTable(
 function checkPayoffTrigger(
   btcValue: number, 
   debtBalance: number, 
-  payoffTrigger: { type: 'percentage' | 'retained_amount'; value: number }
+  payoffTrigger: { type: 'hodl_only' | 'percentage' | 'retained_amount'; value: number }
 ): boolean {
   switch (payoffTrigger.type) {
+    case 'hodl_only':
+      // Never trigger payoff - hold Bitcoin for maximum growth
+      return false;
+      
     case 'percentage':
       // Trigger when BTC value reaches X% of remaining debt
       const percentageOfDebt = (btcValue / debtBalance) * 100;
@@ -492,8 +496,8 @@ export function validateAmortizationInputs(
     errors.push('Current Bitcoin price is required and must be positive');
   }
   
-  // Validate payoff trigger
-  if (!inputs.payoffTrigger.value || inputs.payoffTrigger.value <= 0) {
+  // Validate payoff trigger (skip validation for hodl_only mode)
+  if (inputs.payoffTrigger.type !== 'hodl_only' && (!inputs.payoffTrigger.value || inputs.payoffTrigger.value <= 0)) {
     errors.push('Payoff trigger value is required and must be positive');
   }
   

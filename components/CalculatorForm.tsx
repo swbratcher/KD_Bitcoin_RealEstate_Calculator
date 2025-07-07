@@ -83,7 +83,7 @@ export default function CalculatorForm({
   const [monthlyHOA, setMonthlyHOA] = useState<string>('0');
   
   // NEW: Payoff trigger settings
-  const [payoffTriggerType, setPayoffTriggerType] = useState<'percentage' | 'retained_amount'>('percentage');
+  const [payoffTriggerType, setPayoffTriggerType] = useState<'hodl_only' | 'percentage' | 'retained_amount'>('hodl_only');
   const [payoffTriggerValue, setPayoffTriggerValue] = useState<string>('200'); // 200% of debt or $200k retained
   
   // NEW: Bitcoin performance settings
@@ -362,7 +362,7 @@ export default function CalculatorForm({
     // NEW: Payoff trigger settings
     const payoffTrigger = {
       type: payoffTriggerType,
-      value: parseFloat(payoffTriggerValue) || 200,
+      value: payoffTriggerType === 'hodl_only' ? 0 : (parseFloat(payoffTriggerValue) || (payoffTriggerType === 'percentage' ? 200 : 0)),
     };
 
     // Enhanced Bitcoin investment with performance settings
@@ -1004,9 +1004,12 @@ export default function CalculatorForm({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-white p-3 rounded-lg">
-                <span className="text-xs text-gray-600 font-medium">BTC Target %</span>
+                <span className="text-xs text-gray-600 font-medium">Payoff Strategy</span>
                 <div className="text-lg font-bold text-blue-600">
-                  {payoffTriggerType === 'percentage' ? payoffTriggerValue : '200'}%
+                  {payoffTriggerType === 'hodl_only' ? 'HODL' : 
+                   payoffTriggerType === 'percentage' ? `${payoffTriggerValue}%` : 
+                   payoffTriggerType === 'retained_amount' ? `${payoffTriggerValue} BTC` : 
+                   'N/A'}
                 </div>
               </div>
               <div className="bg-white p-3 rounded-lg">
@@ -1101,52 +1104,71 @@ export default function CalculatorForm({
                   </label>
                   <select
                     value={payoffTriggerType}
-                    onChange={(e) => setPayoffTriggerType(e.target.value as 'percentage' | 'retained_amount')}
+                    onChange={(e) => {
+                      const newType = e.target.value as 'hodl_only' | 'percentage' | 'retained_amount';
+                      setPayoffTriggerType(newType);
+                      // Set default values for each option
+                      if (newType === 'hodl_only') {
+                        setPayoffTriggerValue('');
+                      } else if (newType === 'percentage') {
+                        setPayoffTriggerValue('200');
+                      } else if (newType === 'retained_amount') {
+                        setPayoffTriggerValue('');
+                      }
+                    }}
                     className="input-field text-sm"
                   >
-                    <option value="percentage">BTC Value as % of Remaining Debt</option>
-                    <option value="retained_amount">Retain Specific BTC Amount</option>
+                    <option value="hodl_only">HODL Only</option>
+                    <option value="percentage">BTC Value</option>
+                    <option value="retained_amount">BTC to Keep</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    {payoffTriggerType === 'percentage' ? 'Trigger Percentage' : 'Retained Amount'}
-                  </label>
-                  <div className="relative">
-                    {payoffTriggerType === 'percentage' ? (
-                      <>
-                        <input
-                          type="number"
-                          value={payoffTriggerValue}
-                          onChange={(e) => setPayoffTriggerValue(e.target.value)}
-                          className="input-field pr-8 text-sm"
-                          placeholder="200"
-                        />
-                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BTC</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={payoffTriggerValue}
-                          onChange={(e) => setPayoffTriggerValue(e.target.value)}
-                          className="input-field pl-12 text-sm"
-                          placeholder="1.5"
-                        />
-                      </>
-                    )}
+                {payoffTriggerType !== 'hodl_only' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      {payoffTriggerType === 'percentage' ? 'Trigger Percentage' : 'BTC Amount to Keep'}
+                    </label>
+                    <div className="relative">
+                      {payoffTriggerType === 'percentage' ? (
+                        <>
+                          <input
+                            type="number"
+                            value={payoffTriggerValue}
+                            onChange={(e) => setPayoffTriggerValue(e.target.value)}
+                            className="input-field pr-8 text-sm"
+                            placeholder="200"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BTC</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={payoffTriggerValue}
+                            onChange={(e) => setPayoffTriggerValue(e.target.value)}
+                            className="input-field pl-12 text-sm"
+                            placeholder=""
+                          />
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {payoffTriggerType === 'percentage' 
+                        ? 'Trigger payoff when BTC value reaches this % of remaining debt'
+                        : 'Trigger payoff while retaining this amount in BTC'
+                      }
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {payoffTriggerType === 'percentage' 
-                      ? 'Trigger payoff when BTC value reaches this % of remaining debt'
-                      : 'Trigger payoff while retaining this amount in BTC'
-                    }
-                  </p>
-                </div>
+                )}
               </div>
+              {payoffTriggerType === 'hodl_only' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  No automatic payoff trigger - hold Bitcoin for maximum growth potential
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1450,35 +1472,32 @@ export default function CalculatorForm({
         </div>
 
         {/* Amortization Timeline Visualization */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Timeline Visualization</h3>
-          <div className="bg-white p-6 border border-gray-200 rounded-lg">
-            <AmortizationChart 
-              data={realChartData || generateSampleChartData()}
-              height={350}
-            />
-            
-            <div className="mt-4">
-              <p className="text-sm text-gray-600 mb-2">
-                20-year projection showing debt paydown, property appreciation, and Bitcoin performance
-              </p>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
-                  <span>Debt</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
-                  <span>Base Equity</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-green-400 rounded mr-2"></div>
-                  <span>Appreciation</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-orange-600 rounded mr-2"></div>
-                  <span>BTC Value</span>
-                </div>
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <h3 className="text-lg font-semibold text-gray-900 p-3 pb-0">Timeline Visualization</h3>
+          <AmortizationChart 
+            data={realChartData || generateSampleChartData()}
+            height={480}
+          />
+          <div className="p-3 pt-0">
+            <p className="text-sm text-gray-600 mb-2">
+              20-year projection showing debt paydown, property appreciation, and Bitcoin performance
+            </p>
+            <div className="flex flex-wrap gap-4 text-xs">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-red-600 rounded mr-2"></div>
+                <span>Debt</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-600 rounded mr-2"></div>
+                <span>Base Equity</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-400 rounded mr-2"></div>
+                <span>Appreciation</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-orange-600 rounded mr-2"></div>
+                <span>BTC Value</span>
               </div>
             </div>
           </div>

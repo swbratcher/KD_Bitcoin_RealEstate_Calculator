@@ -26,8 +26,18 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
   data, 
   height = 400 
 }) => {
-  // Format currency for tooltips
+  // Format currency for tooltips (full format)
   const formatCurrency = (value: number) => {
+    return `$${Math.round(value).toLocaleString()}`;
+  };
+
+  // Format currency for Y-axis (abbreviated format)
+  const formatCurrencyShort = (value: number) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
     return `$${Math.round(value).toLocaleString()}`;
   };
 
@@ -38,8 +48,8 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
     const firstDataPoint = data[0];
     const initialTotalAssets = firstDataPoint.debt + firstDataPoint.baseEquity + firstDataPoint.appreciation + firstDataPoint.btcValue;
     
-    // Cap at 2x initial total assets to keep debt and equity visible
-    const yAxisMax = initialTotalAssets * 2;
+    // Cap at 2.3x initial total assets (15% more headroom) to show Bitcoin performance better
+    const yAxisMax = initialTotalAssets * 2.3;
     
     return yAxisMax;
   };
@@ -60,7 +70,12 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
     ];
     
     // Find the date range of the data to determine which halvings to show
-    const dataYears = data.map(d => parseInt(d.date)).filter(year => !isNaN(year));
+    // Handle both "2024" and "2024-01" date formats
+    const dataYears = data.map(d => {
+      const year = d.date.includes('-') ? parseInt(d.date.split('-')[0]) : parseInt(d.date);
+      return year;
+    }).filter(year => !isNaN(year));
+    
     const minYear = Math.min(...dataYears);
     const maxYear = Math.max(...dataYears);
     
@@ -108,46 +123,61 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
   );
 
   return (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={height}>
-        <AreaChart
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart
           data={data}
           margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 5,
+            top: 0,
+            right: 0,
+            left: 0,
+            bottom: 35,
           }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis 
             dataKey="date" 
-            tick={{ fontSize: 12 }}
+            angle={-90}
+            textAnchor="end"
+            tick={{ fontSize: 11 }}
             tickLine={{ stroke: '#ccc' }}
-            interval={0}
-            tickFormatter={(value, index) => {
-              // Show every 12th tick (annual) and ensure it's a 4-digit year
-              return index % 12 === 0 && value.length === 4 ? value : '';
+            interval={11}
+            tickFormatter={(value: string) => {
+              // Extract year from date format
+              const year = value.includes('-') ? value.split('-')[0] : value;
+              return year;
             }}
+            height={60}
           />
           <YAxis 
             tick={{ fontSize: 12 }}
             tickLine={{ stroke: '#ccc' }}
-            tickFormatter={formatCurrency}
+            tickFormatter={formatCurrencyShort}
             domain={[0, yAxisMax || 1000000]}
             allowDataOverflow={true}
           />
           <Tooltip content={<CustomTooltip />} />
           
           {/* Bitcoin Halving Reference Lines */}
-          {halvingDates.map((halving) => (
-            <ReferenceLine 
-              key={halving.year}
-              x={halving.year} 
-              stroke="#3b82f6" 
-              strokeWidth={1}
-            />
-          ))}
+          {data && halvingDates.map((halving) => {
+            // Find the data point that matches the halving year
+            const halvingDataPoint = data.find(d => {
+              const dataYear = d.date.includes('-') ? d.date.split('-')[0] : d.date;
+              return dataYear === halving.year;
+            });
+            
+            if (halvingDataPoint) {
+              return (
+                <ReferenceLine 
+                  key={halving.year}
+                  x={halvingDataPoint.date} 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  strokeDasharray="none"
+                />
+              );
+            }
+            return null;
+          })}
           
           {/* Debt (Red) - Bottom layer */}
           <Area
@@ -192,11 +222,8 @@ const AmortizationChart: React.FC<AmortizationChartProps> = ({
             fillOpacity={0.8}
             name="BTC Value"
           />
-        </AreaChart>
-      </ResponsiveContainer>
-      
-
-    </div>
+      </AreaChart>
+    </ResponsiveContainer>
   );
 };
 

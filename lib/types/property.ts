@@ -119,7 +119,7 @@ export interface BitcoinPerformanceSettings {
 // NEW: Payoff trigger settings
 export interface PayoffTriggerSettings {
   /** Trigger type */
-  type: 'percentage' | 'retained_amount';
+  type: 'hodl_only' | 'percentage' | 'retained_amount';
   /** Trigger value (percentage of debt or dollar amount) */
   value: number;
 }
