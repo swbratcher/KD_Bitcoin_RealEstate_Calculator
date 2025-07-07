@@ -140,7 +140,7 @@ export function generateComprehensiveAmortizationTable(
     const debtBalanceAtTrigger = debtBalance;
     
     // Calculate payoff trigger analysis (only relevant during loan period)
-    const payoffTriggerMet = isLoanActive ? checkPayoffTrigger(btcValue, debtBalance, payoffTrigger) : false;
+    const payoffTriggerMet = isLoanActive ? checkPayoffTrigger(btcValue, debtBalance, payoffTrigger, remainingBTC, btcSpotPrice) : false;
     const canPayOff = isLoanActive ? btcValue >= debtBalance : true;
     const payoffAmount = debtBalance; // Amount needed for full payoff
     const surplus = canPayOff ? btcValue - debtBalance : btcValue;
@@ -203,7 +203,9 @@ export function generateComprehensiveAmortizationTable(
 function checkPayoffTrigger(
   btcValue: number, 
   debtBalance: number, 
-  payoffTrigger: { type: 'hodl_only' | 'percentage' | 'retained_amount'; value: number }
+  payoffTrigger: { type: 'hodl_only' | 'percentage' | 'retained_amount'; value: number },
+  remainingBTC: number,
+  btcSpotPrice: number
 ): boolean {
   switch (payoffTrigger.type) {
     case 'hodl_only':
@@ -217,8 +219,9 @@ function checkPayoffTrigger(
       
     case 'retained_amount':
       // Trigger when we can pay off debt while retaining X amount in BTC
-      const retainedAmount = btcValue - debtBalance;
-      return retainedAmount >= payoffTrigger.value;
+      const btcNeededForPayoff = debtBalance / btcSpotPrice;  // BTC needed to pay off debt
+      const btcRetainedAfterPayoff = remainingBTC - btcNeededForPayoff;  // BTC amount retained
+      return btcRetainedAfterPayoff >= payoffTrigger.value;
       
     default:
       return false;
