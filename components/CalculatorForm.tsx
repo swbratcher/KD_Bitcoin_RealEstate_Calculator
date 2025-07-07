@@ -585,10 +585,10 @@ export default function CalculatorForm({
                 <span className="flex items-center">
                   Monthly Payment (PITI) *
                   <span 
-                    className="ml-1 text-blue-500 cursor-help" 
+                    className="ml-1 cursor-help inline-flex items-center justify-center w-4 h-4 text-xs font-medium text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200" 
                     title="Total monthly payment including Principal, Interest, Taxes & Insurance"
                   >
-                    ℹ️
+                    i
                   </span>
                 </span>
               </label>
@@ -777,101 +777,108 @@ export default function CalculatorForm({
           )}
         </div>
 
-        {/* Cash-Out Amount */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Investment Amount</h3>
+        {/* Investment Amount and Loan Terms - Side by Side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Investment Amount (Left) */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Investment Amount</h3>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cash-Out Amount (Bitcoin Investment) *
+                Cash-Out Amount OR Equity Percentage
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={cashOutAmount}
-                  onChange={(e) => handleCashOutAmountChange(e.target.value)}
-                  className={`input-field pl-8 ${getError('cashOutAmount') ? 'border-red-500' : ''}`}
-                  placeholder="40,000"
-                  max={maxCashOut}
-                  required
-                />
-              </div>
-              {getError('cashOutAmount') && (
-                <p className="mt-1 text-sm text-red-600">{getError('cashOutAmount')}</p>
-              )}
-            </div>
+              <div className="grid grid-cols-6 gap-2">
+                {/* Cash-Out Amount - 6 col width */}
+                <div className="col-span-3">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      value={cashOutAmount}
+                      onChange={(e) => handleCashOutAmountChange(e.target.value)}
+                      className={`input-field pl-8 ${getError('cashOutAmount') ? 'border-red-500' : ''}`}
+                      placeholder="40,000"
+                      max={maxCashOut}
+                      required
+                    />
+                  </div>
+                  {getError('cashOutAmount') && (
+                    <p className="mt-1 text-sm text-red-600">{getError('cashOutAmount')}</p>
+                  )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                OR Equity Percentage
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={cashOutPercentage}
-                  onChange={(e) => handleCashOutPercentageChange(e.target.value)}
-                  className="input-field pr-8"
-                  placeholder="20"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                {/* OR Equity Percentage - 8 col width */}
+                <div className="col-span-3">
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={cashOutPercentage}
+                      onChange={(e) => handleCashOutPercentageChange(e.target.value)}
+                      className="input-field pr-8"
+                      placeholder="20"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                  </div>
+                </div>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Percentage of property value
+                Enter dollar amount or percentage of property value
               </p>
             </div>
           </div>
 
-
-        </div>
-
-        {/* Loan Terms */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {loanType === 'refinance' ? 'Refinance Terms' : 'HELOC Terms'}
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {loanType === 'refinance' ? 'New Loan Term' : 'HELOC Term'}
-              </label>
-              <select
-                value={loanType === 'refinance' ? newLoanTermYears : helocTermYears}
-                onChange={(e) => loanType === 'refinance' ? setNewLoanTermYears(e.target.value) : setHelocTermYears(e.target.value)}
-                className="input-field"
-              >
-                <option value="10">10 years</option>
-                <option value="15">15 years</option>
-                <option value="20">20 years</option>
-                <option value="25">25 years</option>
-                <option value="30">30 years</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Interest Rate *
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.01"
-                  value={loanType === 'refinance' ? newInterestRate : helocInterestRate}
-                  onChange={(e) => loanType === 'refinance' ? setNewInterestRate(e.target.value) : setHelocInterestRate(e.target.value)}
-                  className={`input-field pr-8 ${getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') ? 'border-red-500' : ''}`}
-                  placeholder={loanType === 'refinance' ? '6.0' : '8.5'}
-                  required
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+          {/* Refinance Terms (Right) */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {loanType === 'refinance' ? 'Refinance Terms' : 'HELOC Terms'}
+            </h3>
+            
+            {/* New Loan Term and Interest Rate side by side */}
+            <div className="grid grid-cols-6 gap-2">
+              {/* New Loan Term - 6 col width */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {loanType === 'refinance' ? 'New Loan Term' : 'HELOC Term'}
+                </label>
+                <select
+                  value={loanType === 'refinance' ? newLoanTermYears : helocTermYears}
+                  onChange={(e) => loanType === 'refinance' ? setNewLoanTermYears(e.target.value) : setHelocTermYears(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="10">10 years</option>
+                  <option value="15">15 years</option>
+                  <option value="20">20 years</option>
+                  <option value="25">25 years</option>
+                  <option value="30">30 years</option>
+                </select>
               </div>
-              {getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') && (
-                <p className="mt-1 text-sm text-red-600">{getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate')}</p>
-              )}
+
+              {/* Interest Rate - 8 col width */}
+              <div className="col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Interest Rate *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={loanType === 'refinance' ? newInterestRate : helocInterestRate}
+                    onChange={(e) => loanType === 'refinance' ? setNewInterestRate(e.target.value) : setHelocInterestRate(e.target.value)}
+                    className={`input-field pr-8 ${getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') ? 'border-red-500' : ''}`}
+                    placeholder={loanType === 'refinance' ? '6.0' : '8.5'}
+                    required
+                  />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                </div>
+                {getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') && (
+                  <p className="mt-1 text-sm text-red-600">{getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate')}</p>
+                )}
+              </div>
             </div>
 
+            {/* Closing Costs below */}
             {loanType === 'refinance' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
