@@ -83,8 +83,8 @@ export default function CalculatorForm({
   const [monthlyHOA, setMonthlyHOA] = useState<string>('0');
   
   // NEW: Payoff trigger settings
-  const [payoffTriggerType, setPayoffTriggerType] = useState<'hodl_only' | 'percentage' | 'retained_amount'>('hodl_only');
-  const [payoffTriggerValue, setPayoffTriggerValue] = useState<string>('200'); // 200% of debt or $200k retained
+  const [payoffTriggerType, setPayoffTriggerType] = useState<'hodl_only' | 'percentage' | 'retained_amount'>('percentage');
+  const [payoffTriggerValue, setPayoffTriggerValue] = useState<string>('2.0'); // 2x multiplier (200% of debt) or BTC amount retained
   
   // NEW: Bitcoin performance settings
   const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
@@ -362,7 +362,9 @@ export default function CalculatorForm({
     // NEW: Payoff trigger settings
     const payoffTrigger = {
       type: payoffTriggerType,
-      value: payoffTriggerType === 'hodl_only' ? 0 : (parseFloat(payoffTriggerValue) || (payoffTriggerType === 'percentage' ? 200 : 0)),
+      value: payoffTriggerType === 'hodl_only' ? 0 : 
+             payoffTriggerType === 'percentage' ? parseFloat(multiplierToPercentage(payoffTriggerValue)) : 
+             parseFloat(payoffTriggerValue) || 0,
     };
 
     // Enhanced Bitcoin investment with performance settings
@@ -428,6 +430,25 @@ export default function CalculatorForm({
       case 'custom': return parseFloat(customAnnualGrowthRate) || 25;
       default: return 20;
     }
+  };
+
+  // Helper functions for multiplier/percentage conversion
+  const percentageToMultiplier = (percentage: string): string => {
+    const pct = parseFloat(percentage) || 0;
+    return (pct / 100).toFixed(1);
+  };
+
+  const multiplierToPercentage = (multiplier: string): string => {
+    const mult = parseFloat(multiplier) || 0;
+    return (mult * 100).toFixed(0);
+  };
+
+  // Calculate retained BTC percentage from multiplier
+  const calculateRetainedPercentage = (multiplier: string): string => {
+    const mult = parseFloat(multiplier) || 1;
+    if (mult <= 1) return "0";
+    const retained = ((1 - 1/mult) * 100).toFixed(0);
+    return retained;
   };
 
   // Analyze Bitcoin sustainability from actual amortization table data
@@ -1097,7 +1118,7 @@ export default function CalculatorForm({
                 <span className="text-xs text-gray-600 font-medium">Payoff Strategy</span>
                 <div className="text-lg font-bold text-blue-600">
                   {payoffTriggerType === 'hodl_only' ? 'HODL' : 
-                   payoffTriggerType === 'percentage' ? `${payoffTriggerValue}%` : 
+                   payoffTriggerType === 'percentage' ? `${payoffTriggerValue}x` : 
                    payoffTriggerType === 'retained_amount' ? `${payoffTriggerValue} BTC` : 
                    'N/A'}
                 </div>
@@ -1205,9 +1226,9 @@ export default function CalculatorForm({
 
             {/* Payoff Trigger Settings - moved into Bitcoin Position */}
             <div className="mt-4 p-3 bg-white rounded-lg border-t border-gray-100">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Payoff Trigger Settings</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Loan Payoff Trigger Settings</h4>
+              <div className="grid grid-cols-6 gap-4">
+                <div className="col-span-3">
                   <label className="block text-xs font-medium text-gray-600 mb-1">
                     Trigger Type
                   </label>
@@ -1220,7 +1241,7 @@ export default function CalculatorForm({
                       if (newType === 'hodl_only') {
                         setPayoffTriggerValue('');
                       } else if (newType === 'percentage') {
-                        setPayoffTriggerValue('200');
+                        setPayoffTriggerValue('2.0');
                       } else if (newType === 'retained_amount') {
                         setPayoffTriggerValue('');
                       }
@@ -1234,21 +1255,23 @@ export default function CalculatorForm({
                 </div>
 
                 {payoffTriggerType !== 'hodl_only' && (
-                  <div>
+                  <div className="col-span-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      {payoffTriggerType === 'percentage' ? 'Trigger Percentage' : 'BTC Amount to Keep'}
+                      {payoffTriggerType === 'percentage' ? 'Trigger Multiplier' : 'BTC Amount to Keep'}
                     </label>
                     <div className="relative">
                       {payoffTriggerType === 'percentage' ? (
                         <>
                           <input
                             type="number"
+                            step="0.1"
                             value={payoffTriggerValue}
                             onChange={(e) => setPayoffTriggerValue(e.target.value)}
                             className="input-field pr-8 text-sm"
-                            placeholder="200"
+                            placeholder="2.0"
+                            min="1.0"
                           />
-                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">x</span>
                         </>
                       ) : (
                         <>
@@ -1264,15 +1287,17 @@ export default function CalculatorForm({
                         </>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {payoffTriggerType === 'percentage' 
-                        ? 'Trigger payoff when BTC value reaches this % of remaining debt'
-                        : 'Trigger payoff while retaining this amount in BTC'
-                      }
-                    </p>
                   </div>
                 )}
               </div>
+              {payoffTriggerType !== 'hodl_only' && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {payoffTriggerType === 'percentage' 
+                    ? `Payoff when BTC value is ${payoffTriggerValue}x the remaining debt (retaining ${calculateRetainedPercentage(payoffTriggerValue)}% of BTC)`
+                    : 'Trigger payoff while retaining this amount in BTC'
+                  }
+                </p>
+              )}
               {payoffTriggerType === 'hodl_only' && (
                 <p className="mt-2 text-xs text-gray-500">
                   No automatic payoff trigger - hold Bitcoin for maximum growth potential
@@ -1303,8 +1328,7 @@ export default function CalculatorForm({
           </div>
 
           {/* Persistent Auto-Config Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1393,33 +1417,54 @@ export default function CalculatorForm({
               >
                 Bearish
               </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedPreset('custom');
-                setIsCustomConfigExpanded(true);
-              }}
-              className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                selectedPreset === 'custom' 
-                  ? 'bg-gray-500 text-white border-gray-500' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              Custom
-            </button>
           </div>
 
           {/* Compact Status Display for Presets */}
           {!isCustomConfigExpanded && selectedPreset !== 'custom' && (
-            <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 border-l-4 border-blue-500">
-              <span className="font-semibold capitalize">{selectedPreset}:</span>
-              <span className="ml-1">
-                {customAnnualGrowthRate}%{enableDiminishingReturns && ` → ${finalCAGR}%`}, 
-                {bitcoinPerformanceModel === 'cycles' ? ' Cycles' : ' Flat Growth'}, 
-                {bitcoinDrawdownPercent}% drawdown
-                {enableFlatteningCycles && `, ${flatteningCyclePercent}% flattening`}
-              </span>
+            <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 border-l-4 border-blue-500 flex items-center justify-between">
+              <div>
+                <span className="font-semibold capitalize">{selectedPreset}:</span>
+                <span className="ml-1">
+                  {customAnnualGrowthRate}%{enableDiminishingReturns && ` → ${finalCAGR}%`}, 
+                  {bitcoinPerformanceModel === 'cycles' ? ' Cycles' : ' Flat Growth'}, 
+                  {bitcoinDrawdownPercent}% drawdown
+                  {enableFlatteningCycles && `, ${flatteningCyclePercent}% flattening`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPreset('custom');
+                  setIsCustomConfigExpanded(true);
+                }}
+                className="px-3 py-1 text-xs rounded border transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50 ml-2"
+              >
+                Custom
+              </button>
+            </div>
+          )}
+
+          {/* Custom Status Display */}
+          {!isCustomConfigExpanded && selectedPreset === 'custom' && (
+            <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 border-l-4 border-gray-500 flex items-center justify-between">
+              <div>
+                <span className="font-semibold">Custom:</span>
+                <span className="ml-1">
+                  {customAnnualGrowthRate}%{enableDiminishingReturns && ` → ${finalCAGR}%`}, 
+                  {bitcoinPerformanceModel === 'cycles' ? ' Cycles' : ' Flat Growth'}, 
+                  {bitcoinDrawdownPercent}% drawdown
+                  {enableFlatteningCycles && `, ${flatteningCyclePercent}% flattening`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomConfigExpanded(true);
+                }}
+                className="px-3 py-1 text-xs rounded border transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50 ml-2"
+              >
+                Edit
+              </button>
             </div>
           )}
 
