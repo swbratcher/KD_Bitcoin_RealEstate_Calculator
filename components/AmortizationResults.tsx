@@ -234,6 +234,83 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
     return Math.round(lastMonthWithDebt / 12);
   };
 
+  // Generate dynamic strategy summary based on actual scenario data
+  const generateStrategySummary = () => {
+    // Get initial values from first entry
+    const firstEntry = monthlySchedule[0];
+    const initialBTC = firstEntry?.btcHeld || 0;
+    const initialBTCPrice = firstEntry?.btcSpotPrice || 100000;
+    const initialInvestment = initialBTC * initialBTCPrice;
+    
+    // Check if BTC was depleted
+    const btcDepletedEntry = monthlySchedule.find(entry => entry.btcHeld <= 0);
+    const lastEntry = monthlySchedule[monthlySchedule.length - 1];
+    
+    // Calculate average monthly shortfall/surplus
+    let totalShortfall = 0;
+    let shortfallMonths = 0;
+    let totalSurplus = 0;
+    let surplusMonths = 0;
+    
+    for (const entry of monthlySchedule) {
+      if (entry.netCashFlow < 0) {
+        totalShortfall += Math.abs(entry.netCashFlow);
+        shortfallMonths++;
+      } else if (entry.netCashFlow > 0) {
+        totalSurplus += entry.netCashFlow;
+        surplusMonths++;
+      }
+    }
+    
+    const avgMonthlyShortfall = shortfallMonths > 0 ? totalShortfall / shortfallMonths : 0;
+    const avgMonthlySurplus = surplusMonths > 0 ? totalSurplus / surplusMonths : 0;
+    
+    // Build the summary based on different scenarios
+    if (btcDepletedEntry) {
+      // Scenario: BTC depleted (crashout)
+      const depletionMonth = btcDepletedEntry.month;
+      const depletionYears = (depletionMonth / 12).toFixed(1);
+      return `Bitcoin investment (${formatCurrency(initialInvestment)} → ${initialBTC.toFixed(4)} BTC @ ${formatCurrency(initialBTCPrice)}) ` +
+             `was depleted after ${depletionYears} years due to monthly shortfalls averaging ${formatCurrency(avgMonthlyShortfall)}. ` +
+             `Consider increasing initial investment, reducing expenses, or adjusting payoff strategy to avoid BTC depletion.`;
+    } else if (avgMonthlyShortfall === 0 && avgMonthlySurplus === 0) {
+      // Scenario: Perfect property cash flow (all good)
+      return `Bitcoin investment (${formatCurrency(initialInvestment)} → ${initialBTC.toFixed(4)} BTC @ ${formatCurrency(initialBTCPrice)}) ` +
+             `remains untouched as property income perfectly covers all expenses. ` +
+             `${payoffAnalysis.triggerMonth ? 
+               `Mortgage paid off in ${(payoffAnalysis.triggerMonth / 12).toFixed(1)} years through BTC appreciation, ` +
+               `retaining ${payoffAnalysis.finalBTCRetained.toFixed(4)} BTC for continued growth.` : 
+               `Full ${initialBTC.toFixed(4)} BTC position preserved for maximum appreciation potential.`} ` +
+             `Property generates self-sustaining income with no BTC liquidation needed.`;
+    } else if (avgMonthlySurplus > avgMonthlyShortfall) {
+      // Scenario: Property cash flow positive
+      return `Bitcoin investment (${formatCurrency(initialInvestment)} → ${initialBTC.toFixed(4)} BTC @ ${formatCurrency(initialBTCPrice)}) ` +
+             `grows unimpeded as property generates surplus income averaging ${formatCurrency(avgMonthlySurplus)}/month. ` +
+             `${payoffAnalysis.triggerMonth ? 
+               `BTC appreciation enabled mortgage payoff in ${(payoffAnalysis.triggerMonth / 12).toFixed(1)} years, ` +
+               `retaining ${payoffAnalysis.finalBTCRetained.toFixed(4)} BTC.` : 
+               `Strategy preserves full BTC position while building both equity and Bitcoin wealth.`} ` +
+             `Ideal scenario combining property income with Bitcoin appreciation.`;
+    } else if (payoffAnalysis.triggerMonth) {
+      // Scenario: Successful payoff with some BTC sales
+      const btcSold = initialBTC - payoffAnalysis.finalBTCRetained;
+      const percentRetained = (payoffAnalysis.finalBTCRetained / initialBTC * 100).toFixed(0);
+      return `Bitcoin investment (${formatCurrency(initialInvestment)} → ${initialBTC.toFixed(4)} BTC @ ${formatCurrency(initialBTCPrice)}) ` +
+             `appreciated sufficiently to pay off mortgage in ${(payoffAnalysis.triggerMonth / 12).toFixed(1)} years, ` +
+             `eliminating debt while retaining ${payoffAnalysis.finalBTCRetained.toFixed(4)} BTC (${percentRetained}%) for continued appreciation. ` +
+             `${avgMonthlyShortfall > 0 ? `Property income shortfall averaged ${formatCurrency(avgMonthlyShortfall)}/month, requiring ${btcSold.toFixed(4)} BTC liquidation. ` : ''} ` +
+             `Property now owned free and clear with ongoing income potential.`;
+    } else {
+      // Scenario: No payoff trigger met but sustainable
+      const finalBTC = lastEntry?.btcHeld || 0;
+      const btcAppreciation = lastEntry ? (lastEntry.btcValue / initialInvestment - 1) * 100 : 0;
+      return `Bitcoin investment (${formatCurrency(initialInvestment)} → ${initialBTC.toFixed(4)} BTC @ ${formatCurrency(initialBTCPrice)}) ` +
+             `sustained the strategy through the full term${avgMonthlyShortfall > 0 ? ` despite property income shortfalls averaging ${formatCurrency(avgMonthlyShortfall)}/month` : ''}. ` +
+             `Final position: ${finalBTC.toFixed(4)} BTC worth ${formatCurrency(lastEntry?.btcValue || 0)} (${btcAppreciation.toFixed(0)}% appreciation). ` +
+             `Strategy preserved BTC holdings without triggering early payoff, maximizing long-term appreciation potential.`;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Section 1: Scenario Outcome (What Happened) */}
@@ -286,9 +363,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>Strategy Summary:</strong> Bitcoin investment ($40,000 → 0.4 BTC @ $100,000) successfully paid off mortgage in {payoffAnalysis.triggerMonth ? (payoffAnalysis.triggerMonth / 12).toFixed(1) : 'N/A'} years, 
-                eliminating debt while retaining {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC for future appreciation. 
-                Monthly shortfall averaged $152 BTC sales. Property now owned free and clear with continued income potential.
+                <strong>Strategy Summary:</strong> {generateStrategySummary()}
               </p>
             </div>
           </div>

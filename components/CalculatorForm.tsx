@@ -74,6 +74,7 @@ export default function CalculatorForm({
   const [closingCosts, setClosingCosts] = useState<string>('2000');
   const [cashOutAmount, setCashOutAmount] = useState<string>('40000');
   const [cashOutPercentage, setCashOutPercentage] = useState<string>('20');
+  const [lastModifiedField, setLastModifiedField] = useState<'amount' | 'percentage' | null>(null);
   const [estimatedNewPayment, setEstimatedNewPayment] = useState<number>(0);
   const [userDesiredPayment, setUserDesiredPayment] = useState<string>('');
 
@@ -88,7 +89,7 @@ export default function CalculatorForm({
   const [monthlyHOA, setMonthlyHOA] = useState<string>('0');
   
   // NEW: Payoff trigger settings
-  const [payoffTriggerType, setPayoffTriggerType] = useState<'hodl_only' | 'percentage' | 'retained_amount'>('percentage');
+  const [payoffTriggerType, setPayoffTriggerType] = useState<'hodl_only' | 'percentage' | 'retained_amount'>('hodl_only');
   const [payoffTriggerValue, setPayoffTriggerValue] = useState<string>('2.0'); // 2x multiplier (200% of debt) or BTC amount retained
   
   // NEW: Bitcoin performance settings
@@ -139,11 +140,45 @@ export default function CalculatorForm({
     
     setAvailableEquity(equity);
     setMaxCashOut(maxCash);
+    
+    // Handle cash-out updates when property info changes
+    if (propValue > 0) {
+      // If this is initial load (default values)
+      if (cashOutAmount === '40000' && lastModifiedField === null) {
+        const twentyPercentOfValue = propValue * 0.2;
+        const availableWithin80LTV = maxCash;
+        const defaultCashOut = Math.min(twentyPercentOfValue, availableWithin80LTV);
+        
+        setCashOutAmount(defaultCashOut.toFixed(0));
+        const percentage = ((defaultCashOut / propValue) * 100).toFixed(1);
+        setCashOutPercentage(percentage);
+      }
+      // If user last modified percentage, update amount based on new property value
+      else if (lastModifiedField === 'percentage') {
+        const percentage = parseFloat(cashOutPercentage) || 0;
+        const newAmount = ((percentage / 100) * propValue);
+        // Ensure we don't exceed 80% LTV
+        const constrainedAmount = Math.min(newAmount, maxCash);
+        setCashOutAmount(constrainedAmount.toFixed(0));
+        // Update percentage if we had to constrain
+        if (constrainedAmount < newAmount) {
+          const adjustedPercentage = ((constrainedAmount / propValue) * 100).toFixed(1);
+          setCashOutPercentage(adjustedPercentage);
+        }
+      }
+      // If user last modified amount, update percentage based on new property value
+      else if (lastModifiedField === 'amount') {
+        const amount = parseFloat(cashOutAmount) || 0;
+        const percentage = ((amount / propValue) * 100).toFixed(1);
+        setCashOutPercentage(percentage);
+      }
+    }
   }, [propertyValue, currentBalance]);
 
   // Handlers for cash-out calculations to avoid circular dependencies
   const handleCashOutAmountChange = (value: string) => {
     setCashOutAmount(value);
+    setLastModifiedField('amount');
     const amount = parseFloat(value) || 0;
     const propValue = parseFloat(propertyValue) || 1;
     const percentage = ((amount / propValue) * 100).toFixed(1);
@@ -152,6 +187,7 @@ export default function CalculatorForm({
 
   const handleCashOutPercentageChange = (value: string) => {
     setCashOutPercentage(value);
+    setLastModifiedField('percentage');
     const percentage = parseFloat(value) || 0;
     const propValue = parseFloat(propertyValue) || 0;
     const amount = ((percentage / 100) * propValue).toFixed(0);
@@ -200,12 +236,7 @@ export default function CalculatorForm({
     setTargetScenarios(prev => prev.map(scenario => ({ ...scenario, timeHorizonYears: horizon })));
   }, [newLoanTermYears]);
 
-  // Set desired payment to current monthly payment as default
-  useEffect(() => {
-    if (!userDesiredPayment && monthlyPayment) {
-      setUserDesiredPayment(monthlyPayment);
-    }
-  }, [monthlyPayment, userDesiredPayment]);
+  // Removed auto-population of desired payment field - let user explicitly set it
 
 
   // Auto-trigger calculations when key fields change
@@ -235,7 +266,7 @@ export default function CalculatorForm({
 
   // Calculate net monthly cash flow
   useEffect(() => {
-    const desiredPayment = parseFloat(userDesiredPayment) || 0;
+    const desiredPayment = parseFloat(userDesiredPayment) || estimatedNewPayment;
     const taxesInsurance = parseFloat(monthlyTaxesInsurance) || 0;
     const hoa = parseFloat(monthlyHOA) || 0;
     const mortgagePI = parseFloat(monthlyPayment) || 0;
@@ -245,7 +276,7 @@ export default function CalculatorForm({
     const totalExpenses = taxesInsurance + hoa + mortgagePI;
     const netCashFlow = desiredPayment - totalExpenses;
     setNetMonthlyCashFlow(netCashFlow);
-  }, [userDesiredPayment, monthlyTaxesInsurance, monthlyHOA, monthlyPayment]);
+  }, [userDesiredPayment, monthlyTaxesInsurance, monthlyHOA, monthlyPayment, estimatedNewPayment]);
 
   const fetchCurrentBitcoinPrice = async () => {
     setBitcoinLoading(true);
@@ -377,7 +408,7 @@ export default function CalculatorForm({
 
     // NEW: Property income data
     const propertyIncome = {
-      monthlyRentalIncome: parseFloat(userDesiredPayment) || 0,
+      monthlyRentalIncome: parseFloat(userDesiredPayment) || estimatedNewPayment,
       monthlyTaxes: parseFloat(monthlyTaxesInsurance) || 0,
       monthlyInsurance: 0, // Now included in monthlyTaxes
       monthlyHOA: parseFloat(monthlyHOA) || 0,
@@ -1122,21 +1153,6 @@ export default function CalculatorForm({
           <h3 className="text-lg font-semibold text-gray-900">Bitcoin Position</h3>
           
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg">
-            {/* Enhanced Algorithm Status */}
-            <div className="mb-4 p-3 bg-white rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Enhanced Algorithm Status:</span>
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
-                  ✓ ACTIVE
-                </span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600">
-                <div>Model: <span className="font-semibold">{bitcoinPerformanceModel === 'cycles' ? 'Seasonal' : 'Steady'}</span></div>
-                <div>Diminishing Returns: <span className="font-semibold">{enableDiminishingReturns ? 'ON' : 'OFF'}</span></div>
-                <div>Loan Start: <span className="font-semibold">Current Month</span></div>
-                <div>Max Drawdown: <span className="font-semibold">{bitcoinDrawdownPercent}%</span></div>
-              </div>
-            </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <div className="bg-white p-3 rounded-lg">
@@ -1212,6 +1228,9 @@ export default function CalculatorForm({
                 <span className="text-sm font-medium text-gray-700">BTC Crashout Likelihood:</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                   (() => {
+                    if (monthlyShortfall <= 0) {
+                      return 'bg-green-100 text-green-800';
+                    }
                     const analysis = analyzeBitcoinSustainability();
                     switch (analysis.riskLevel) {
                       case 'low': return 'bg-green-100 text-green-800';
@@ -1223,7 +1242,9 @@ export default function CalculatorForm({
                 }`}>
                   {(() => {
                     const analysis = analyzeBitcoinSustainability();
-                    if (analysis.sustainable) {
+                    if (monthlyShortfall <= 0) {
+                      return 'ALL GOOD';
+                    } else if (analysis.sustainable) {
                       return analysis.riskLevel === 'low' 
                         ? 'VERY LOW RISK' 
                         : analysis.riskLevel === 'medium' 
