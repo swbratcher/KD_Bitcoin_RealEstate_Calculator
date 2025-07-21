@@ -49,7 +49,7 @@ export default function HomePage() {
           <p className="mt-4 text-lg text-gray-600">
             How it looks to hold Bitcoin alongside Real Estate.          </p>
           <div className="mt-4 text-sm text-blue-600">
-            🧪 <strong>Client Side Only:</strong> None of your data is seen by this site.
+            <strong>Client Side Only:</strong> None of your data is seen by this site.
           </div>
         </div>
 

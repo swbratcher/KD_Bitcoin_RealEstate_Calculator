@@ -220,6 +220,82 @@ function AmortizationTable({
 
 function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
   const { payoffAnalysis, performanceSummary, monthlySchedule } = results;
+
+  // Utility function for capped percentage display
+  const formatCappedPercent = (value: number, cap = 10.0) => {
+    if (value > cap) {
+      return `${(cap * 100).toFixed(0)}%+`;
+    }
+    return formatPercent(value);
+  };
+
+  // Utility function for capped currency display
+  const formatCappedCurrency = (value: number, cap = 1000000) => {
+    if (value > cap) {
+      return `$${(cap / 1000000).toFixed(0)}M+`;
+    }
+    return formatCurrency(value);
+  };
+
+  // Calculate milestone metrics
+  const calculateMilestones = () => {
+    const firstEntry = monthlySchedule[0];
+    const initialInvestment = firstEntry?.btcHeld * firstEntry?.btcSpotPrice || 40000;
+    
+    // Find when investment doubles (2x)
+    const doubleEntry = monthlySchedule.find(entry => entry.btcValue >= initialInvestment * 2);
+    const doubleTimeYears = doubleEntry ? (doubleEntry.month / 12).toFixed(1) : 'N/A';
+    
+    // Break-even point (when Bitcoin appreciation covers potential losses)
+    // Find when BTC value > initial BTC investment (first profitable point)
+    const breakEvenEntry = monthlySchedule.find(entry => 
+      entry.btcValue > initialInvestment
+    );
+    const breakEvenMonths = breakEvenEntry ? breakEvenEntry.month : null;
+    const breakEvenTime = breakEvenMonths ? 
+      breakEvenMonths < 12 ? `${breakEvenMonths} months` : `${(breakEvenMonths / 12).toFixed(1)} years`
+      : 'N/A';
+    
+    // Debt-free timeline
+    const debtFreeTime = payoffAnalysis.triggerMonth ? 
+      `${(payoffAnalysis.triggerMonth / 12).toFixed(1)} years` : 
+      'Full term';
+    
+    return {
+      debtFreeTime,
+      doubleTimeYears,
+      breakEvenTime
+    };
+  };
+
+  const milestones = calculateMilestones();
+
+  // Calculate percentage breakdown of gains
+  const calculateGainsBreakdown = () => {
+    const propertyGain = performanceSummary.componentBreakdown ? 
+      performanceSummary.componentBreakdown.propertyAppreciationGain :
+      performanceSummary.finalPropertyValue - 200000; // fallback
+    
+    const bitcoinGain = performanceSummary.componentBreakdown ? 
+      performanceSummary.componentBreakdown.bitcoinNetContribution :
+      performanceSummary.finalBTCValue - 40000; // fallback
+    
+    const interestSavings = payoffAnalysis.interestSaved;
+    
+    const totalGains = propertyGain + bitcoinGain + interestSavings;
+    
+    if (totalGains <= 0) {
+      return { propertyPercent: 0, bitcoinPercent: 0, interestPercent: 0 };
+    }
+    
+    return {
+      propertyPercent: (propertyGain / totalGains) * 100,
+      bitcoinPercent: (bitcoinGain / totalGains) * 100,
+      interestPercent: (interestSavings / totalGains) * 100
+    };
+  };
+
+  const gainsBreakdown = calculateGainsBreakdown();
   
   // Calculate loan term from monthly schedule - find when debt naturally goes to zero
   const calculateLoanTermYears = () => {
@@ -348,7 +424,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
               {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
             </p>
             <p className="text-lg font-semibold text-gray-900">
-              {formatCurrency(performanceSummary.finalBTCValue)}
+              {formatCappedCurrency(performanceSummary.finalBTCValue)}
             </p>
           </div>
         </div>
@@ -376,8 +452,13 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">Total ROI</h4>
+            {/* Element #1A - Capped ROI Display */}
             <p className="text-3xl font-bold text-green-600">
-              {formatPercent(performanceSummary.totalROI)}
+              {formatCappedPercent(performanceSummary.totalROI)}
+            </p>
+            {/* Element #1B - Original ROI Display */}
+            <p className="text-sm text-gray-500">
+              Actual: {formatPercent(performanceSummary.totalROI)}
             </p>
             <p className="text-sm text-gray-500">Over {performanceSummary.efficiencyMetrics?.timeToPayoff.toFixed(1) || (payoffAnalysis.triggerMonth ? (payoffAnalysis.triggerMonth / 12).toFixed(1) : 'N/A')} years</p>
           </div>
@@ -391,7 +472,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">Final Asset Value</h4>
             <p className="text-2xl font-bold text-purple-600">
-              {formatCurrency(performanceSummary.finalTotalAsset)}
+              {formatCappedCurrency(performanceSummary.finalTotalAsset, 1000000 + performanceSummary.finalPropertyValue)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
@@ -399,7 +480,7 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             <p className={`text-2xl font-bold ${performanceSummary.baselineComparison?.strategyOutperformance && performanceSummary.baselineComparison.strategyOutperformance > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {performanceSummary.baselineComparison ? 
                 (performanceSummary.baselineComparison.strategyOutperformance > 0 ? '+' : '') + 
-                formatCurrency(performanceSummary.baselineComparison.strategyOutperformance) : 
+                formatCappedCurrency(Math.abs(performanceSummary.baselineComparison.strategyOutperformance)) : 
                 'N/A'
               }
             </p>
@@ -408,10 +489,45 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         </div>
       </div>
 
+      {/* Section 2B: Milestone Summary */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Milestones</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Element #2A - Debt-Free Timeline */}
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Debt-Free Timeline</h4>
+            <p className="text-2xl font-bold text-green-600">
+              {milestones.debtFreeTime}
+            </p>
+            <p className="text-xs text-gray-500">Mortgage elimination</p>
+          </div>
+          
+          {/* Element #2B - First Double */}
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">First Double</h4>
+            <p className="text-2xl font-bold text-blue-600">
+              {milestones.doubleTimeYears === 'N/A' ? 'N/A' : `${milestones.doubleTimeYears} years`}
+            </p>
+            <p className="text-xs text-gray-500">Investment 2x milestone</p>
+          </div>
+          
+          {/* Element #2C - Break-Even Point */}
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-600">Break-Even Point</h4>
+            <p className="text-2xl font-bold text-purple-600">
+              {milestones.breakEvenTime}
+            </p>
+            <p className="text-xs text-gray-500">Risk-free threshold</p>
+          </div>
+        </div>
+      </div>
+
       {/* Section 3: Gain Attribution (Component Breakdown) */}
       <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Where Gains Came From</h3>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Element #3C - Original Property $ */}
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">Property Appreciation</h4>
             <p className="text-2xl font-bold text-blue-600">
@@ -422,12 +538,14 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             </p>
             <p className="text-xs text-gray-500">Real estate growth</p>
           </div>
+          
+          {/* Element #3D - Original Bitcoin $ */}
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">Bitcoin Net Gain</h4>
             <p className="text-2xl font-bold text-orange-600">
               {performanceSummary.componentBreakdown ? 
-                formatCurrency(performanceSummary.componentBreakdown.bitcoinNetContribution) :
-                formatCurrency(performanceSummary.finalBTCValue - 40000) // fallback calculation
+                formatCappedCurrency(performanceSummary.componentBreakdown.bitcoinNetContribution) :
+                formatCappedCurrency(performanceSummary.finalBTCValue - 40000) // fallback calculation
               }
               <span className="text-sm font-normal text-gray-600 ml-2">
                 ({payoffAnalysis.finalBTCRetained.toFixed(4)} BTC)
@@ -435,6 +553,8 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             </p>
             <p className="text-xs text-gray-500">Monthly BTC sales: ~$152 avg for shortfall coverage</p>
           </div>
+          
+          {/* Element #3E - Original Interest $ */}
           <div className="bg-white rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-600">Interest Savings</h4>
             <p className="text-2xl font-bold text-purple-600">
