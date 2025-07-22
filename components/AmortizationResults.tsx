@@ -394,7 +394,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Scenario Outcome</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Payoff Success</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Payoff Success
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Mortgage Payoff Timeline</div>
+                    <div>When Bitcoin appreciation allows early mortgage payoff based on your trigger settings. "Full Term" means Bitcoin never reached the trigger threshold during the loan period.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-blue-600">
               {payoffAnalysis.triggerMonth ? 
                 `${(payoffAnalysis.triggerMonth / 12).toFixed(1)} Years` : 
@@ -412,14 +426,42 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Zero Debt</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Zero Debt
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Projected Property Value</div>
+                    <div>Estimated home value at mortgage payoff, assuming your chosen appreciation rate. Actual real estate values fluctuate with market conditions and local factors.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(performanceSummary.finalPropertyValue)}
             </p>
             <p className="text-xs text-gray-500">Home Value</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">BTC Retained</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              BTC Retained
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Remaining Bitcoin Holdings</div>
+                    <div>Bitcoin remaining after any sales needed to cover mortgage shortfalls or early payoff. Future Bitcoin performance is uncertain and highly volatile.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-xl font-bold text-orange-600">
               {payoffAnalysis.finalBTCRetained.toFixed(4)} BTC
             </p>
@@ -451,7 +493,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Performance</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Total ROI</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Total ROI
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Return on Investment</div>
+                    <div>Total percentage gain from your combined Bitcoin + Real Estate strategy compared to initial investment. Includes property appreciation, Bitcoin gains, and interest savings.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             {/* Element #1A - Capped ROI Display */}
             <p className="text-3xl font-bold text-green-600">
               {formatCappedPercent(performanceSummary.totalROI)}
@@ -463,20 +519,62 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
             <p className="text-sm text-gray-500">Over {performanceSummary.efficiencyMetrics?.timeToPayoff.toFixed(1) || (payoffAnalysis.triggerMonth ? (payoffAnalysis.triggerMonth / 12).toFixed(1) : 'N/A')} years</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Annualized Return</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Annualized Return
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Projected Annual Return</div>
+                    <div>Estimated equivalent annual return rate based on your modeling assumptions. Actual returns will vary significantly due to Bitcoin volatility and market conditions.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-3xl font-bold text-blue-600">
               {formatPercent(performanceSummary.annualizedReturn)}
             </p>
             <p className="text-sm text-gray-500">Per year</p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Final Asset Value</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Final Asset Value
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Projected Total Assets</div>
+                    <div>Estimated combined value of property plus Bitcoin holdings based on your modeling assumptions. Actual values depend on real estate markets and Bitcoin performance.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-purple-600">
               {formatCappedCurrency(performanceSummary.finalTotalAsset, 1000000 + performanceSummary.finalPropertyValue)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">vs S&P 500 (7%)</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              vs S&P 500 (7%)
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Benchmark Comparison</div>
+                    <div>How much more (or less) your Bitcoin + Real Estate strategy earned compared to investing the same amount in S&P 500 index funds at 7% annual returns.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className={`text-2xl font-bold ${performanceSummary.baselineComparison?.strategyOutperformance && performanceSummary.baselineComparison.strategyOutperformance > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {performanceSummary.baselineComparison ? 
                 (performanceSummary.baselineComparison.strategyOutperformance > 0 ? '+' : '') + 
@@ -495,7 +593,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Element #2A - Debt-Free Timeline */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Debt-Free Timeline</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Debt-Free Timeline
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Mortgage Freedom Timeline</div>
+                    <div>When your mortgage will be completely paid off. This could be through Bitcoin appreciation triggering early payoff, or through normal monthly payments over the full loan term.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-green-600">
               {milestones.debtFreeTime}
             </p>
@@ -504,7 +616,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           
           {/* Element #2B - First Double */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">First Double</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              First Double
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Investment Doubling Point</div>
+                    <div>When your Bitcoin holdings first reach 2x their initial cash value based on projected appreciation. Past performance doesn't predict future Bitcoin price movements.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-blue-600">
               {milestones.doubleTimeYears === 'N/A' ? 'N/A' : `${milestones.doubleTimeYears} years`}
             </p>
@@ -513,11 +639,25 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           
           {/* Element #2C - Break-Even Point */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Break-Even Point</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Break-Even Point
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Bitcoin Breakeven</div>
+                    <div>When Bitcoin appreciation has recovered your initial cash investment amount. Note: Bitcoin remains volatile and you may still need to sell BTC for monthly expenses, so this doesn't eliminate risk.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-purple-600">
               {milestones.breakEvenTime}
             </p>
-            <p className="text-xs text-gray-500">Risk-free threshold</p>
+            <p className="text-xs text-gray-500">When BTC value exceeds initial investment</p>
           </div>
         </div>
       </div>
@@ -529,7 +669,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Element #3C - Original Property $ */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Property Appreciation</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Property Appreciation
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Real Estate Growth</div>
+                    <div>Total dollar gain from your property increasing in value over time. This represents the difference between final home value and original purchase price.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-blue-600">
               {performanceSummary.componentBreakdown ? 
                 formatCurrency(performanceSummary.componentBreakdown.propertyAppreciationGain) :
@@ -541,7 +695,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           
           {/* Element #3D - Original Bitcoin $ */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Bitcoin Net Gain</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Bitcoin Net Gain
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Bitcoin Appreciation Gain</div>
+                    <div>Net dollar gain from Bitcoin price appreciation, accounting for any BTC sold to cover monthly shortfalls or mortgage payoff. This is your Bitcoin investment's net contribution to wealth.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-orange-600">
               {performanceSummary.componentBreakdown ? 
                 formatCappedCurrency(performanceSummary.componentBreakdown.bitcoinNetContribution) :
@@ -556,7 +724,21 @@ function PerformanceSummary({ results }: { results: AmortizationResultsType }) {
           
           {/* Element #3E - Original Interest $ */}
           <div className="bg-white rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-600">Interest Savings</h4>
+            <h4 className="text-sm font-medium text-gray-600 flex items-center">
+              Interest Savings
+              <div className="relative inline-block ml-1">
+                <div className="group">
+                  <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-lg py-2 px-3 w-64 -bottom-2 left-6 transform translate-y-full opacity-0 group-hover:opacity-100 transition-all duration-100">
+                    <div className="font-semibold mb-1">Mortgage Interest Avoided</div>
+                    <div>Total interest payments avoided by paying off your mortgage early through Bitcoin appreciation. This represents direct savings compared to carrying the loan to full term.</div>
+                    <div className="absolute w-3 h-3 bg-gray-800 transform rotate-45 -top-1.5 left-2"></div>
+                  </div>
+                </div>
+              </div>
+            </h4>
             <p className="text-2xl font-bold text-purple-600">
               {formatCurrency(payoffAnalysis.interestSaved)}
             </p>

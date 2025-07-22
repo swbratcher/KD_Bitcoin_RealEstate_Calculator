@@ -96,7 +96,7 @@ export default function CalculatorForm({
   const [bitcoinPerformanceModel, setBitcoinPerformanceModel] = useState<string>('cycles'); // cycles, flat
   const [bitcoinDrawdownPercent, setBitcoinDrawdownPercent] = useState<string>('60'); // Default to match Bullish config
   const [bitcoinPerformanceSentiment, setBitcoinPerformanceSentiment] = useState<string>('bullish'); // bearish, realist, bullish, 3xmaxi, custom
-  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('60');
+  const [customAnnualGrowthRate, setCustomAnnualGrowthRate] = useState<string>('40');
   
   // NEW: Enhanced Bitcoin algorithm settings
   const [enableDiminishingReturns, setEnableDiminishingReturns] = useState<boolean>(true);
@@ -719,6 +719,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="10000"
                   value={propertyValue}
                   onChange={(e) => setPropertyValue(e.target.value)}
                   className={`input-field pl-8 ${getError('propertyValue') ? 'border-red-500' : ''}`}
@@ -739,6 +740,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="5000"
                   value={currentBalance}
                   onChange={(e) => setCurrentBalance(e.target.value)}
                   className={`input-field pl-8 ${getError('currentBalance') ? 'border-red-500' : ''}`}
@@ -767,6 +769,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="50"
                   value={monthlyPayment}
                   onChange={(e) => setMonthlyPayment(e.target.value)}
                   className={`input-field pl-8 ${getError('monthlyPayment') ? 'border-red-500' : ''}`}
@@ -790,6 +793,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="25"
                   value={monthlyTaxesInsurance}
                   onChange={(e) => setMonthlyTaxesInsurance(e.target.value)}
                   className="input-field pl-8"
@@ -809,6 +813,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="25"
                   value={monthlyHOA}
                   onChange={(e) => setMonthlyHOA(e.target.value)}
                   className="input-field pl-8"
@@ -824,7 +829,7 @@ export default function CalculatorForm({
               <div className="relative">
                 <input
                   type="number"
-                  step="0.1"
+                  step="0.25"
                   value={propertyAppreciationRate}
                   onChange={(e) => setPropertyAppreciationRate(e.target.value)}
                   className="input-field pr-8"
@@ -917,7 +922,7 @@ export default function CalculatorForm({
                   <div className="relative">
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.25"
                       value={currentInterestRate}
                       onChange={(e) => setCurrentInterestRate(e.target.value)}
                       className={`input-field pr-8 ${getError('currentInterestRate') ? 'border-red-500' : ''}`}
@@ -937,6 +942,7 @@ export default function CalculatorForm({
                   </label>
                   <input
                     type="number"
+                    step="1"
                     value={remainingYears}
                     onChange={(e) => setRemainingYears(e.target.value)}
                     className="input-field"
@@ -966,6 +972,7 @@ export default function CalculatorForm({
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                     <input
                       type="number"
+                      step="5000"
                       value={cashOutAmount}
                       onChange={(e) => handleCashOutAmountChange(e.target.value)}
                       className={`input-field pl-8 ${getError('cashOutAmount') ? 'border-red-500' : ''}`}
@@ -984,7 +991,7 @@ export default function CalculatorForm({
                   <div className="relative">
                     <input
                       type="number"
-                      step="0.1"
+                      step="1"
                       value={cashOutPercentage}
                       onChange={(e) => handleCashOutPercentageChange(e.target.value)}
                       className="input-field pr-8"
@@ -1034,7 +1041,7 @@ export default function CalculatorForm({
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.25"
                     value={loanType === 'refinance' ? newInterestRate : helocInterestRate}
                     onChange={(e) => loanType === 'refinance' ? setNewInterestRate(e.target.value) : setHelocInterestRate(e.target.value)}
                     className={`input-field pr-8 ${getError(loanType === 'refinance' ? 'newInterestRate' : 'helocInterestRate') ? 'border-red-500' : ''}`}
@@ -1059,6 +1066,7 @@ export default function CalculatorForm({
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                   <input
                     type="number"
+                    step="1000"
                     value={closingCosts}
                     onChange={(e) => setClosingCosts(e.target.value)}
                     className="input-field pl-8"
@@ -1084,6 +1092,7 @@ export default function CalculatorForm({
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 <input
                   type="number"
+                  step="50"
                   value={userDesiredPayment}
                   onChange={(e) => setUserDesiredPayment(e.target.value)}
                   className="input-field pl-8"
@@ -1310,7 +1319,7 @@ export default function CalculatorForm({
                         <>
                           <input
                             type="number"
-                            step="0.1"
+                            step="0.5"
                             value={payoffTriggerValue}
                             onChange={(e) => setPayoffTriggerValue(e.target.value)}
                             className="input-field pr-8 text-sm"
@@ -1324,7 +1333,7 @@ export default function CalculatorForm({
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">BTC</span>
                           <input
                             type="number"
-                            step="0.01"
+                            step="0.1"
                             value={payoffTriggerValue}
                             onChange={(e) => setPayoffTriggerValue(e.target.value)}
                             className="input-field pl-12 text-sm"
@@ -1379,12 +1388,12 @@ export default function CalculatorForm({
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
                     <input
                       type="number"
+                      step="5000"
                       value={manualBitcoinPrice}
                       onChange={(e) => handleManualBitcoinPriceChange(e.target.value)}
                       className="input-field pl-8 pr-2 py-1 text-xs w-24"
                       placeholder="100000"
                       min="1"
-                      step="1000"
                     />
                   </div>
                   <span className="text-xs text-amber-600">API offline</span>
@@ -1421,7 +1430,7 @@ export default function CalculatorForm({
                 type="button"
                 onClick={() => {
                   setBitcoinPerformanceSentiment('bullish');
-                  setCustomAnnualGrowthRate('60');
+                  setCustomAnnualGrowthRate('40');
                   setEnableDiminishingReturns(true);
                   setFinalCAGR('15');
                   setEnableFlatteningCycles(true);
@@ -1570,7 +1579,7 @@ export default function CalculatorForm({
                       <div className="relative w-fit">
                         <input
                           type="number"
-                          step="0.1"
+                          step="5"
                           value={customAnnualGrowthRate}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -1586,7 +1595,7 @@ export default function CalculatorForm({
                         <div className="relative w-fit">
                           <input
                             type="number"
-                            step="0.1"
+                            step="5"
                             value={finalCAGR}
                             onChange={(e) => setFinalCAGR(e.target.value)}
                             className="input-field pr-8 w-24"
