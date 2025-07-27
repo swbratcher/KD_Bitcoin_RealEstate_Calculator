@@ -15,7 +15,7 @@ export default function KrigerDanesHeader() {
         <div className="flex justify-between items-center h-20">
           {/* Logo - constrained to header height */}
           <div className="flex items-center h-full py-2">
-            <Link href="https://krigerdanes.com" className="flex items-center h-full">
+            <Link href="https://krigerdanes.com" target="_blank" rel="noopener noreferrer" className="flex items-center h-full">
               {/* KrigerDanes Logo */}
               <img 
                 src="https://krigerdanes.com/wp-content/uploads/2024/11/KrigerDanes_Logo.svg"
